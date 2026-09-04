@@ -92,6 +92,7 @@ export function InquiryForm({ formToken }: Props) {
       {state.formError ? (
         <div
           role="alert"
+          data-form-error
           className="rounded-lg border border-critical bg-critical-soft p-4 text-small text-ink"
         >
           <p className="font-medium">{state.formError}</p>

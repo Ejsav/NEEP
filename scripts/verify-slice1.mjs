@@ -229,9 +229,11 @@ const submittedRef = { value: null };
   // Submit with nothing filled in. Browser validation is bypassed via noValidate.
   await page.waitForTimeout(3000);
   await page.click('button[type="submit"]');
-  await page.waitForSelector('[role="alert"]', { timeout: 15000 });
+  // Scoped to this form's own error: Next renders a route announcer that also
+  // carries role="alert", so a bare [role="alert"] selector is ambiguous.
+  await page.waitForSelector("[data-form-error]", { timeout: 15000 });
 
-  const alert = await page.locator('[role="alert"]').first().innerText();
+  const alert = await page.locator("[data-form-error]").innerText();
   check("validation: server rejects an empty submission", alert.length > 0, alert.slice(0, 80));
 
   const fieldErrors = await page.locator("p.text-critical").allTextContents();
