@@ -1,0 +1,627 @@
+# Decision log
+
+Format per entry: **Decision / Evidence / Alternatives / Reason chosen / Risk /
+How measured / Revisit condition.**
+
+Evidence classes, used throughout: **VERIFIED FACT** (first-party or
+authoritative source), **RESEARCH OBSERVATION** (secondary source or SERP),
+**STRATEGIC INFERENCE** (reasoning from those), **RECOMMENDATION**.
+
+> **Research limitation affecting this whole document.** During the Session 1
+> research pass, this environment's egress policy blocked `developers.google.com`,
+> `nextjs.org`, `react.dev`, `web.dev`, `fmcsa.dot.gov`, `cga.ct.gov`,
+> `portal.ct.gov` and `ecfr.gov` at the proxy (HTTP 403). Findings sourced from
+> those domains came from search-index extraction, not from reading the page.
+> They are labelled RESEARCH OBSERVATION rather than VERIFIED FACT even where the
+> underlying source is authoritative. Next.js findings were recovered from
+> first-party docs shipped inside `node_modules/next/dist/docs/`, which is why
+> they carry a higher confidence than the rest. **Re-verify anything marked
+> UNVERIFIED before it drives a legal or public claim.**
+
+---
+
+## D-001 — Modular monolith on Next.js App Router
+
+**Decision.** One Next.js 16 application: public marketing, venue database and
+admin in a single deployable, separated by route group and module boundary
+rather than by service.
+
+**Evidence.** RESEARCH OBSERVATION: Next 16.3.4 is current stable (npm registry,
+published 2026-08-31), engines `node >= 20.9`, Turbopack default for dev and
+build. STRATEGIC INFERENCE: this site is overwhelmingly read-dominated, and the
+write path is one form plus a small admin.
+
+**Alternatives.** Separate marketing site + API service; a headless CMS with a
+custom frontend; Astro for content with a separate app for admin.
+
+**Reason chosen.** The expensive coupling in this product is between content and
+conversion — a venue page is a lead capture surface. Splitting them across
+services buys distributed-systems cost for no isolation benefit at this size. A
+route-group boundary gives the same clarity at a fraction of the operational
+weight.
+
+**Risk.** The admin and the public site scale together and share a blast radius.
+
+**How measured.** Build time, p75 LCP on public routes, admin response times.
+
+**Revisit condition.** Admin grows past roughly ten screens with its own
+non-trivial workflows, or the venue dataset needs a separate ingestion pipeline.
+
+---
+
+## D-002 — Drizzle ORM over Prisma
+
+**Decision.** `drizzle-orm` 0.45 with the `postgres` (postgres.js) driver.
+
+**Evidence.** RESEARCH OBSERVATION: Drizzle ships no query-engine binary;
+Prisma 7 removed its Rust engine but the artifact remains larger. RESEARCH
+OBSERVATION: `prisma@latest` currently resolves to `8.0.0-rc.12`, an RC, while
+`@prisma/client@latest` is 7.10.0 — a naive install would pull a prerelease.
+
+**Alternatives.** Prisma 7; Kysely; raw `postgres.js`.
+
+**Reason chosen.** Postgres-native types matter here (JSONB service arrays,
+enums, partial indexes on the venue schema to come), and Drizzle exposes them
+directly. Cold-start size matters on a serverless target.
+
+**Risk.** `drizzle-kit` migrations are less mature than `prisma migrate`, and
+Drizzle's 0.x → 1.0 transition is still in RC, so a migration is coming.
+
+**How measured.** Migration friction per schema change; cold start time.
+
+**Revisit condition.** Drizzle 1.0 ships — plan the upgrade deliberately. Or
+migrations become a recurring source of production incidents.
+
+---
+
+## D-003 — Server-side sessions with scrypt, not a managed auth provider
+
+**Decision.** Own the admin auth: scrypt password hashing via `node:crypto`,
+opaque session tokens stored as SHA-256 in Postgres, absolute (12h) and idle
+(2h) expiry, `__Host-` cookie prefix in production.
+
+**Evidence.** VERIFIED FACT: `lucia` is deprecated — every recent npm version
+carries a `deprecated` field pointing at a migration guide, last publish
+2024-10-20. RESEARCH OBSERVATION: `next-auth` `latest` is still 4.24.15 with v5
+published only under the `beta` tag at 5.0.0-beta.32, i.e. v5 remains formally
+beta. RESEARCH OBSERVATION: `better-auth` 1.7.2 and `@clerk/nextjs` 7.9.1 are
+both actively maintained.
+
+**Alternatives.** Better Auth; Clerk; Auth.js v5 beta.
+
+**Reason chosen.** Two reasons. First, a managed provider needs an account and
+API keys that do not exist yet, which would have made Slice 1 unverifiable in
+this session — an unverifiable money path is worse than a self-hosted one.
+Second, the requirement is genuinely small: a handful of internal users, no
+social login, no MFA yet. Server-side sessions also give immediate revocation,
+which matters because an admin session can read every customer's contact
+details.
+
+**Risk.** Hand-rolled auth is a classic source of subtle bugs. Mitigated by:
+identical timing on the unknown-account path via a dummy hash, identical error
+copy for wrong-password / unknown / deactivated, two-axis rate limiting, an
+audit log, and tests covering each.
+
+**How measured.** Audit log review; any auth-related finding in `/audit`.
+
+**Revisit condition.** MFA, SSO, customer-facing accounts, or more than about
+ten admin users. Then move to Better Auth or Clerk — the session table is
+deliberately provider-shaped to make that a contained change.
+
+---
+
+## D-004 — scrypt rather than argon2id
+
+**Decision.** Node's built-in `crypto.scrypt`, N=2^15, r=8, p=1, 64-byte output,
+16-byte random salt, with `maxmem` raised to accommodate N.
+
+**Evidence.** VERIFIED FACT: scrypt is RFC 7914 and memory-hard. VERIFIED FACT:
+it is in the Node standard library, so it adds no dependency.
+
+**Alternatives.** `@node-rs/argon2` (prebuilt native binaries); `bcrypt`.
+
+**Reason chosen.** Argon2id is the stronger primitive, but it arrives as a
+native module — a real deployment risk on serverless targets and a build-time
+failure mode. scrypt at these parameters is comfortably adequate for a
+small set of admin passwords, and it cannot fail to install.
+
+**Risk.** Argon2id has better resistance to GPU/ASIC attack per unit of memory.
+
+**How measured.** Hash verification latency; any auth finding in `/audit`.
+
+**Revisit condition.** Customer-facing accounts, or the admin user count growing
+enough that the password table becomes a worthwhile target. The stored hash
+format is self-describing (`scrypt$N$r$p$salt$hash`), so a second algorithm can
+be added and rehashed on next login without a migration.
+
+---
+
+## D-005 — Postgres-backed rate limiting
+
+**Decision.** Fixed-window counters in a `rate_limit_buckets` table, keyed by
+purpose. Per-IP and global limits on the inquiry form; per-IP and per-account
+limits on admin login. Fails **open** on database error.
+
+**Evidence.** RESEARCH OBSERVATION: the Next.js docs do not provide a
+rate-limiting primitive; their guidance is to add your own check and to enable
+host-level rate limiting as well. STRATEGIC INFERENCE: an in-process counter on
+a serverless target resets on every cold start and is not shared between
+instances, which makes it security theatre.
+
+**Alternatives.** In-memory LRU; Upstash Redis; host/WAF rate limiting only.
+
+**Reason chosen.** Postgres is already a hard dependency, so this adds no new
+infrastructure and the limit actually holds across instances and restarts.
+
+**Risk.** A fixed window permits up to 2× the limit across a boundary. Accepted:
+limits are set low enough that 2× is still harmless. Each check also costs one
+write. Failing open is a deliberate trade — a database outage must not silently
+drop a lead, and the persistence path has its own error handling.
+
+**How measured.** Bucket table growth; spam volume reaching the inbox.
+
+**Revisit condition.** Spam gets through despite the limits, the table becomes
+hot enough to matter, or a WAF is added in front (then reconsider the layering).
+
+---
+
+## D-006 — Server Action for the inquiry form, not a Route Handler
+
+**Decision.** `submitInquiry` is a Server Action consumed via `useActionState`.
+
+**Evidence.** RESEARCH OBSERVATION, from Next's own docs shipped in
+`node_modules`: *"Server Components support progressive enhancement by default,
+meaning forms that call Server Actions will be submitted even if JavaScript
+hasn't loaded yet or is disabled."* And, on security: *"the route is reachable to
+anyone who can send the same POST. Treat every action as an untrusted entry
+point."* VERIFIED FACT (observed in this build): a `"use server"` module may only
+export async functions — constants and types must live in a sibling module.
+
+**Alternatives.** Route Handler with a plain HTML form post; client `fetch` to
+an API route.
+
+**Reason chosen.** Errors re-render inline in a single roundtrip with no
+redirect dance, `pending` comes free, and the no-JS path works without writing a
+second implementation. The `use client` boundary stays scoped to the form, so
+the surrounding page ships no JavaScript.
+
+**Risk.** The action is a public endpoint. Mitigated by doing rate limiting,
+signed-token verification and validation inside the action, in that order.
+
+**How measured.** Submission success rate; spam rate; the no-JS check in
+`pnpm verify:e2e`.
+
+**Revisit condition.** A third party needs to POST to the form, or submissions
+need to run in parallel from the client — actions are dispatched sequentially
+per client, so a Route Handler would be correct there.
+
+---
+
+## D-007 — Cookie-based, server-set attribution
+
+**Decision.** Attribution is captured in `src/proxy.ts` and written to three
+HttpOnly first-party cookies: `neep_ft` (first touch, 1 year, never
+overwritten), `neep_lt` (last touch, 90 days, overwritten only by a
+campaign-bearing visit) and `neep_v` (opaque visit id and count).
+
+**Evidence.** VERIFIED FACT: Next 16 renamed the `middleware` file convention to
+`proxy`, and the build emits a deprecation warning for the old name — confirmed
+in `node_modules/next/dist/build/index.js` and the shipped docs. STRATEGIC
+INFERENCE: server-set cookies survive content blockers and work with JavaScript
+disabled, unlike a client analytics script.
+
+**Alternatives.** Client-side script writing `localStorage`; a third-party
+analytics SDK; last-touch only.
+
+**Reason chosen.** Attribution that only works when a tag manager loads is
+attribution that under-reports exactly the privacy-conscious, ad-blocking
+segment. Doing it at the edge is more accurate and touches no third party. The
+last-touch overwrite rule — a later direct visit does **not** erase the campaign
+that drove the visitor — is standard practice and is what makes paid spend
+measurable.
+
+**Risk.** Cookies are HttpOnly but **not signed**, so a determined visitor could
+corrupt their own attribution record. Accepted: the blast radius is one row of
+marketing data. Every field is therefore re-validated on read — type-checked,
+control characters stripped, length-capped — rather than trusted. Signing would
+force the proxy onto the Node runtime for a disproportionate gain.
+
+**How measured.** Share of inquiries with a resolvable source; agreement with ad
+platform click counts.
+
+**Revisit condition.** Evidence of deliberate attribution tampering, or a need
+to attribute revenue precisely enough that integrity matters more than runtime
+flexibility.
+
+---
+
+## D-008 — Inquiry committed before attribution, deliberately not one transaction
+
+**Decision.** `createInquiry` inserts the inquiry and commits, then inserts
+attribution separately. An attribution failure is logged and reported as
+`attributionCaptured: false`; it never raises.
+
+**Evidence.** STRATEGIC INFERENCE. The foreign key points from attribution to
+inquiry, so the dangerous orphan — attribution referencing an inquiry that never
+committed — is structurally impossible in this order.
+
+**Alternatives.** Both writes in one transaction.
+
+**Reason chosen.** The lead is the asset; attribution is reporting metadata.
+Wrapping them together means a marketing-data failure can roll back a real
+customer's submission, which inverts the priorities. This was caught and
+corrected during the build: the first implementation used a transaction whose
+`catch` re-threw, contradicting its own comment.
+
+**Risk.** An inquiry can exist with no attribution row. The admin detail page
+states this plainly rather than rendering blanks.
+
+**How measured.** Count of inquiries with a null attribution row.
+
+**Revisit condition.** Attribution loss stops being rare.
+
+---
+
+## D-009 — Notification outbox with an honest unconfigured state
+
+**Decision.** Every notification is written to the `notifications` table
+**before** any delivery attempt, then updated with the outcome. Delivery goes
+through Resend via `fetch` when `RESEND_API_KEY` and `EMAIL_FROM` are both set.
+Otherwise the row is stored with status `no_provider` and the admin UI says, in
+those words, that no email was sent.
+
+**Evidence.** STRATEGIC INFERENCE, constrained by the no-fabrication rule.
+
+**Alternatives.** Send inline and hope; a queue (BullMQ/QStash); a mock
+transport that logs success.
+
+**Reason chosen.** A mock transport reporting success would be a fake dashboard
+— explicitly forbidden. The outbox means a provider outage can never make a lead
+invisible, and the dashboard tells the operator the truth about their own
+configuration. No SDK dependency: Resend's REST API over `fetch` is enough.
+
+**Risk.** No automatic retry yet. Failed rows sit visible in admin until a retry
+slice ships.
+
+**How measured.** Notification rows by status; time from submission to first
+human response.
+
+**Revisit condition.** Delivery failures become common, or volume justifies a
+real queue with backoff.
+
+---
+
+## D-010 — TypeScript 5.9 and ESLint 9, both pinned below latest
+
+**Decision.** `typescript@5.9.3` and `eslint@^9.39.5`, despite TypeScript 7.0.2
+and ESLint 10.9.1 being the current `latest`.
+
+**Evidence.** VERIFIED FACT, both observed directly in this build:
+
+- `typescript-eslint@8.69.0` refuses to load under TS 7: *"typescript-eslint does
+  not support TS 7.0"*, pointing at tracking issue #10940. TS 7 typechecked the
+  project cleanly; only the linter breaks.
+- Under ESLint 10, `eslint-config-next@16.3.4` fails via
+  `eslint-plugin-react@7.37.5`: `contextOrFilename.getFilename is not a
+  function` — the plugin uses an API ESLint 10 removed.
+
+**Alternatives.** Keep TS 7 and drop type-aware linting; run TS 6 side by side
+for the linter; keep ESLint 10 and drop `eslint-config-next`.
+
+**Reason chosen.** Lint is part of the definition of done. A toolchain where one
+of the four required checks cannot run is not a production toolchain. Both
+downgrades are on well-supported lines and cost nothing at this project's size.
+
+**Risk.** Sitting one major behind on two tools; the gap widens if left.
+
+**How measured.** `pnpm verify` staying green.
+
+**Revisit condition.** `typescript-eslint` ships TS 7 support (issue #10940), and
+`eslint-config-next` supports ESLint 10. Re-test both together, not separately.
+
+---
+
+## D-011 — `cacheComponents` / PPR deferred, not rejected
+
+**Decision.** Ship Slice 1 without `cacheComponents: true`. Homepage is static,
+`/start` and admin are `force-dynamic`.
+
+**Evidence.** RESEARCH OBSERVATION from Next's shipped docs: `cacheComponents`
+is a top-level (non-experimental) config in 16.0.0 that implements PPR as the
+App Router default and removes `experimental.ppr`; it requires the Node runtime;
+`unstable_cache` is superseded by `'use cache'`; `revalidateTag` now takes a
+second `cacheLife` argument.
+
+**Alternatives.** Enable it now; never enable it.
+
+**Reason chosen.** Enabling it changes caching and metadata semantics across
+every route at the same moment the whole application is new. Slice 1's job was a
+verified money path. Adopting it is a scheduled slice with its own verification,
+not a flag flipped in passing.
+
+**Risk.** Retrofitting `'use cache'` discipline later costs more than starting
+with it. Accepted, and deliberately scheduled early — before the venue database
+adds many routes.
+
+**How measured.** p75 LCP/TTFB before and after; build time.
+
+**Revisit condition.** Scheduled as Slice 6 in `docs/PHASE_PLAN.md`.
+
+---
+
+## D-012 — Structured data: Organization only. No LocalBusiness, no ratings.
+
+**Decision.** Emit `Organization` sitewide with `areaServed` and **no**
+`address`. Emit `BreadcrumbList` once breadcrumbs are visible. Never emit
+`AggregateRating`, `Review`, `FAQPage`, or `Event` on a service page. On future
+venue pages, mark up `Article`/`WebPage` authored by us, with the venue as a
+nested non-primary `Place` carrying only `name` and `sameAs`.
+
+**Evidence.** RESEARCH OBSERVATION (see the limitation note above —
+`developers.google.com` was blocked, so these are search-extracted quotes of
+Google's docs, not pages read directly):
+
+- **FAQPage is finished, not merely restricted.** The 2023 gov/health carve-out
+  is out of date. Google's notice: *"FAQ rich results are no longer appearing in
+  Google Search. We will be dropping the FAQ search appearance, rich result
+  report, and support in the Rich results test in June 2026."* All three
+  milestones have passed. Zero upside remains.
+- **Self-serve reviews are ineligible.** Pages using `LocalBusiness` or any
+  `Organization` subtype are excluded from the review feature when the reviewed
+  entity controls the reviews — including via an embedded third-party widget.
+  With zero reviews there is no compliant construction, and emitting
+  `AggregateRating` anyway invites a spammy-structured-markup manual action,
+  after which all structured data on the page is ignored.
+- **LocalBusiness needs a real, publicly displayed address.** Marking up an
+  address not visible on the page violates the visibility guideline. The company
+  has no publishable storefront.
+- **Marking up a venue we do not own as the page's primary entity** risks
+  Google associating that entity with our domain. UNVERIFIED: no explicit Google
+  prohibition was found; the general relevance guideline (*"your structured data
+  must be a true representation of the page content"*) is what drives this.
+
+**Alternatives.** Emit everything and let Google ignore what it will.
+
+**Reason chosen.** Every rejected type is either dead weight or an active
+manual-action risk, and each one is also fabrication surface. `BreadcrumbList`
+is the one clear win: a real rich result requiring no claims.
+
+**Risk.** Foregoing rich results a competitor might obtain. Assessed as near
+zero given the above.
+
+**How measured.** Search Console enhancement reports; Rich Results Test.
+
+**Revisit condition.** Genuine third-party reviews exist and are displayed
+on-page; or a real publishable address exists; or Google's guidance changes —
+**re-verify against `developers.google.com` directly** once reachable.
+
+---
+
+## D-013 — Legal posture on transportation and vendor vetting
+
+**Decision.** Transportation is described only in coordinating terms, with a
+standing above-the-footer disclosure. The vendor-vetting claim ships **only**
+once a documented per-vendor file exists.
+
+**Evidence.** RESEARCH OBSERVATION (primary sources blocked at the proxy; quoted
+via search extraction, URLs recorded for later verification):
+
+- **CGS §13b-101** defines a motor vehicle in livery service as one used by any
+  person or company *"which represents itself to be in the business of
+  transporting passengers for hire."* The trigger is **holding out**, not
+  ownership. Enforcement sits with CT DOT's Bureau of Public Transportation,
+  Regulatory and Compliance Unit.
+- **Penalty:** civil penalty up to **$1,000 per day, per violation**.
+- The §13b-103 "weddings, funerals, processions" clause waives the **hearing**,
+  not the **permit**. It is not an exemption.
+- **49 U.S.C. §13102(2)** defines a broker as one who *"holds itself out by
+  solicitation, advertisement, or otherwise as selling, providing, or arranging
+  for, transportation by motor carrier for compensation."* Advertisement is an
+  express trigger.
+- **CUTPA (CGS §42-110b(b))** directs Connecticut courts to follow FTC
+  interpretations; FTC deception turns on **net impression** — *"the entire
+  mosaic, rather than each tile separately."* Stock limo imagery can therefore
+  mislead even when the adjacent text is literally true. Remedies under
+  §42-110g include punitive damages and attorney's fees.
+- **Publishing a vetting standard creates a duty.** Under the voluntary
+  undertaking doctrine (Restatement (Second) of Torts §324A) a company that
+  undertakes a protective service can be liable where it is relied upon; and
+  negligent selection of an independent contractor is the company's *own*
+  negligence. An unperformed verification claim is separately a CUTPA deception.
+- **VERIFIED FACT:** Connecticut licenses no event planner or wedding planner
+  occupation. CUTPA is the operative regime.
+
+**UNVERIFIED / requires an attorney.** Whether FMCSA passenger-broker
+registration is required (§13102(2)'s definition reaches passengers, but
+§13904's registration and 49 CFR Part 371 are property-only, and no passenger
+broker authority category was identifiable); whether CT DOT treats a pure
+arranger as "holding out"; whether a markup or bundled single price converts the
+coordinator into a reseller; whether the Home Solicitation Sales Act (CGS ch.
+740, three-business-day cancellation right) attaches to contracts signed at
+venue site visits.
+
+**Reason chosen.** The exposure here is created by *words*, not by the business
+model. Copy rules that a writer can apply mechanically are the cheapest possible
+mitigation. The mechanical list lives in `CLAUDE.md`.
+
+**Risk.** Conservative phrasing converts marginally worse than "we provide
+wedding transportation." Accepted without argument — a $1,000/day exposure is
+not a conversion trade.
+
+**How measured.** Copy review against the banned list before any page ships.
+
+**Revisit condition.** Counsel reviews and rules on the four open questions.
+
+---
+
+## D-014 — The venue database is a conversion and credibility asset, not a
+traffic engine
+
+**Decision.** Build the Connecticut Venue Intelligence Database, but scope and
+justify it as a **conversion, credibility and AI-citation asset** and a wedge
+into the **regional venue-guide corridor** — explicitly **not** as a source of
+direct search traffic from per-venue logistics queries. Target roughly 25–40
+venues with genuine depth rather than 200 thin records.
+
+**Evidence.** This decision **contradicts the original brief**, on research.
+
+- **RESEARCH OBSERVATION (negative finding).** Queries of the form
+  `"[venue] parking shuttle capacity"` returned couples' personal Zola wedding
+  sites and generic directories — the signature of no dedicated search intent.
+  No dedicated authoritative page ranked. Per-venue logistics queries show no
+  evidence of meaningful volume.
+- **RESEARCH OBSERVATION.** The premise that this data is not public is **false
+  for a meaningful slice of it.** Saint Clements Castle publishes room-by-room
+  capacities; The Barn at Black Walnut Farm publishes "onsite parking for up to
+  100 cars", 8am setup access and "events wrap by midnight"; Eleven Thirty
+  Consulting publishes "parking limited to 25 vehicles total" and an open vendor
+  policy; The Grand Oak Villa publishes a shuttle policy. The gap is
+  **aggregation and normalisation**, not discovery — which means it is
+  copyable by any competitor with a scraper.
+- **RESEARCH OBSERVATION (the encouraging finding).** Independent photographer
+  blogs with modest authority *do* rank for CT venue-guide terms. That corridor
+  is winnable at zero domain authority; the "hire a planner" corridor is not.
+- **RESEARCH OBSERVATION.** The concern is universal even though the query is
+  not: the mature "questions to ask a wedding venue" cluster is organised around
+  parking, shuttles, noise curfew and vendor policy.
+
+**Alternatives.** Build it as the primary organic traffic play, per the original
+brief. Or skip it.
+
+**Reason chosen.** The asset is real but was mispriced. Logistics depth is what
+makes our regional guides better than the photographers' roundups that currently
+win those terms; it is the differentiator, not the traffic source. It also
+converts, because it demonstrates competence a new company cannot otherwise
+prove.
+
+**Risk.** Accuracy liability on facts about venues we do not operate, and those
+facts decay. Mitigated by per-field provenance and verification dates in the
+schema. Separately: publishing curfews, mandatory-vendor status or parking
+shortfalls can antagonise the venues whose referrals a new coordinator needs.
+
+**How measured.** Rankings for `[region] wedding venues` and `[venue] wedding`,
+**not** for logistics terms. Inquiry rate on venue pages vs. site average.
+
+**Revisit condition.** Six months of data. If venue pages neither rank for guide
+terms nor convert above average, cut the programme rather than expand it.
+
+---
+
+## D-015 — Four verticals held, with an explicit build-order priority
+
+**Decision.** Keep all four verticals as scope, but build in this order:
+weddings + venue coordination first (shared content engine), private events
+second, corporate last.
+
+**Evidence.** RESEARCH OBSERVATION: `corporate event planner connecticut`
+returns **Indeed job listings** on page 1 — the intent is contaminated with
+job-seeker traffic — and the rest is directory-locked (The Bash, GigSalad,
+Eventective, BBB). RESEARCH OBSERVATION: `wedding planner connecticut` is
+contested but independents do rank; the cost/budget and venue-guide clusters are
+genuinely winnable. RESEARCH OBSERVATION: three of roughly ten independent CT
+planners surfaced publish real prices (Irene & Co from $9,500; Rose Hill from
+$3,000; Sarah Brehant at 16–18% of budget), while The Knot and Thumbtack have
+already commoditised the price question at scale.
+
+**Alternatives.** Build all four in parallel, per the brief's flat framing.
+
+**Reason chosen.** A zero-authority site spreading across four verticals
+under-builds all four. Weddings and venue coordination share one content engine;
+corporate and private need their own.
+
+**Risk.** Corporate revenue arrives later than it might have.
+
+**How measured.** Organic entrances and inquiries per vertical.
+
+**Revisit condition.** Corporate inquiries arrive from relationships and
+warrant earlier content investment.
+
+**Note.** Published pricing is a **conversion and trust** differentiator, not an
+SEO one — it will not win rankings; it will win the inquiry. Position
+accordingly, and do not build the brand on it.
+
+---
+
+## D-016 — Warm light palette, not the dark house style
+
+**Decision.** Ground is warm paper `#faf7f2`, ink is warm charcoal `#1c1917`,
+with a single deep claret accent `#7a1e2e` and sage as a supporting neutral. A
+full dark theme is defined at the token level.
+
+**Evidence.** STRATEGIC INFERENCE. The governing design skill assigns this
+project Tier 4 (product/SaaS precision: trust and conversion, premium not
+flashy) and states that Tier 4 must execute light and dark to the same standard.
+
+**Alternatives.** The dark digital palette used elsewhere in the brand portfolio.
+
+**Reason chosen.** Dark chrome reads as nightlife or developer tooling. This
+audience is planning a wedding or a company offsite and is deciding whether to
+trust a brand-new company with a five-figure event. Warm paper with one
+disciplined accent reads considered and regional. Explicitly rejected: blush and
+gold script wedding cliché, SaaS gradients, glassmorphism.
+
+**Risk.** Visual divergence from sibling brands. Irrelevant — those are
+different audiences on different domains, and cross-referencing them is banned.
+
+**How measured.** Contrast ratios; inquiry rate.
+
+**Revisit condition.** Testing shows the light treatment underperforms.
+
+---
+
+## D-017 — Fraunces and Instrument Sans, self-hosted via `next/font`
+
+**Decision.** Display face Fraunces (variable, with `SOFT`/`WONK`/`opsz` axes),
+body face Instrument Sans. Both self-hosted at build time.
+
+**Evidence.** VERIFIED FACT (tested in this environment): `fonts.googleapis.com`
+and `fonts.gstatic.com` are reachable, but `api.fontshare.com` is blocked at the
+proxy — so Fontshare families such as General Sans and Cabinet Grotesk cannot be
+fetched here. RESEARCH OBSERVATION: `next/font` downloads at build time and
+serves from our own origin, sends no request to Google at runtime, and its
+`adjustFontFallback` generates a size-matched fallback to reduce CLS.
+
+**Alternatives.** Fontshare families (blocked); a licensed foundry face (no
+licence); system stack (disqualified — the design standard rules out Inter,
+Roboto, Arial and `system-ui` as display faces).
+
+**Reason chosen.** Fraunces is warm and editorial with genuine personality
+without tipping into calligraphic wedding cliché. Instrument Sans is a clean
+contemporary grotesque that avoids the default-Inter look. Two faces, no
+runtime third-party request, no layout shift.
+
+**Risk.** Neither is a distinctive paid foundry face.
+
+**How measured.** CLS at p75; LCP.
+
+**Revisit condition.** Budget for a licensed display face, or Fontshare becomes
+reachable.
+
+---
+
+## D-018 — No published pricing until the business supplies real numbers
+
+**Decision.** Build the pricing and estimator **system**, but publish no number
+until the founder supplies real ones. The inquiry form's budget bands describe
+the **customer's** event budget and are a qualification input — they are not a
+price list and must never be presented as one.
+
+**Evidence.** The no-fabrication rule. Pricing is a business decision, not an
+engineering one.
+
+**Alternatives.** Publish market-derived ranges from the research (Thumbtack
+Hartford: day-of $800–$1,700, partial $1,500–$3,800, full $3,500–$8,000+).
+
+**Reason chosen.** Those are *other companies'* prices. Publishing them as ours
+would be fabrication and, under FTC pricing guidance, an advertised price must
+be one at which the service is *"openly and actively offered… honestly and in
+good faith."* We cannot honour a number the business has not set.
+
+**Risk.** The single strongest available trust signal stays offline until the
+founder acts. This is a named blocker.
+
+**How measured.** Inquiry rate before and after pricing publishes.
+
+**Revisit condition.** The founder supplies a real fee structure. Then ship the
+pricing slice, with every material variable disclosed adjacently and estimator
+output labelled an estimate, not a quote.
