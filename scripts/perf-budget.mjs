@@ -72,9 +72,13 @@ async function measure(browser, route) {
   });
 
   const response = await page.goto(`${BASE}${route}`, {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
+  // Next prefetches an RSC payload for every visible <Link>, so "networkidle"
+  // never settles. Wait for the document, then give prefetch a moment to land.
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(750);
   if (!response || !response.ok()) {
     throw new Error(`${route} returned ${response ? response.status() : "no response"}`);
   }

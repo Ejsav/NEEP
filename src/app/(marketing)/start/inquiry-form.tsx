@@ -478,7 +478,7 @@ function SectionHeading({
 }) {
   return (
     <div className="flex items-baseline gap-3 border-b border-line pb-2">
-      <span className="eyebrow text-accent" aria-hidden="true">
+      <span className="eyebrow text-sage" aria-hidden="true">
         {step}
       </span>
       <h2 id={id} className="text-heading-2 font-display text-ink">
@@ -543,7 +543,7 @@ function SubmissionReceipt({ state }: { state: InquiryFormState }) {
       role="status"
     >
       <div className="flex flex-col gap-2">
-        <span className="eyebrow text-accent">Inquiry received</span>
+        <span className="eyebrow text-positive">Inquiry received</span>
         <h2 className="text-heading-1 font-display text-ink">
           Thank you. We have it.
         </h2>
@@ -601,7 +601,7 @@ function ReceiptStep({ n, children }: { n: string; children: React.ReactNode }) 
   return (
     <li className="flex gap-3">
       <span
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-micro font-semibold text-accent"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sage-soft text-micro font-semibold text-sage"
         aria-hidden="true"
       >
         {n}

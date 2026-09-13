@@ -267,6 +267,23 @@
     }
   }
 
+  /*
+   * Scroll reveal. The attribute is only set once the observer is running, so
+   * content is never hidden by CSS that JavaScript failed to undo.
+   */
+  [data-reveal="hidden"] {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+
+  [data-reveal="shown"] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition:
+      opacity var(--duration-base) var(--ease-out-quiet),
+      transform var(--duration-base) var(--ease-out-quiet);
+  }
+
   /* Skip link: present in the DOM, revealed on focus. */
   .skip-link {
     position: absolute;

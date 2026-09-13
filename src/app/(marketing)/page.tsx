@@ -6,7 +6,12 @@ import { siteConfig } from "@/lib/site-config";
 import { EVENT_TYPES } from "@/lib/domain/inquiry-options";
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} | Connecticut Event Planning & Coordination`,
+  // `absolute` because the root layout applies a `%s | brand` template. Without
+  // it a title that already names the brand gets it appended a second time,
+  // which produced a 99-character title Google would truncate.
+  title: {
+    absolute: `Connecticut Event Planning | ${siteConfig.name}`,
+  },
   description: siteConfig.tagline,
   alternates: { canonical: "/" },
 };
@@ -56,7 +61,7 @@ export default function HomePage() {
       <section className="border-b border-line">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-24">
           <div className="flex max-w-3xl flex-col gap-6">
-            <span className="eyebrow text-accent">
+            <span className="eyebrow">
               {siteConfig.serviceArea.description}
             </span>
             <h1 className="text-display-1 font-display text-ink">
@@ -221,8 +226,8 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-2 border-t-2 border-accent pt-4">
-      <span className="eyebrow text-accent" aria-hidden="true">
+    <li className="flex flex-col gap-2 border-t-2 border-sage pt-4">
+      <span className="eyebrow text-sage" aria-hidden="true">
         {n}
       </span>
       <h3 className="font-display text-heading-2 text-ink">{title}</h3>

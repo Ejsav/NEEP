@@ -6,7 +6,7 @@ import { InquiryForm } from "./inquiry-form";
 import { FORM_SCOPE } from "./form-state";
 
 export const metadata: Metadata = {
-  title: "Start planning your Connecticut event",
+  title: "Plan your Connecticut event",
   description:
     "Tell us what you're planning and we'll come back with a real answer, not a brochure. Connecticut weddings, corporate events, private events, and venue and vendor coordination.",
   alternates: { canonical: "/start" },
@@ -34,7 +34,7 @@ export default function StartPage() {
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
         <div className="flex flex-col gap-10">
           <header className="flex max-w-measure flex-col gap-4">
-            <span className="eyebrow text-accent">Start here</span>
+            <span className="eyebrow">Start here</span>
             <h1 className="text-display-2 font-display text-ink">
               Tell us what you&apos;re planning.
             </h1>
