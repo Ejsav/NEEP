@@ -10,6 +10,7 @@
  * Requires: a built app served on :3000, and DATABASE_URL pointing at it.
  */
 import { chromium } from "playwright";
+import { resolveChromium } from "./lib/chromium.mjs";
 
 const BASE = process.env.VERIFY_BASE_URL ?? "http://localhost:3000";
 
@@ -32,9 +33,7 @@ function check(name, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  -- ${detail}` : ""}`);
 }
 
-const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-});
+const browser = await chromium.launch({ executablePath: resolveChromium() });
 
 const consoleErrors = [];
 const pageErrors = [];
