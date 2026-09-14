@@ -36,6 +36,19 @@ export function siteUrl(): string {
   return raw.replace(/\/+$/, "");
 }
 
+/**
+ * Whether a database is configured at all.
+ *
+ * Distinct from databaseUrl(), which throws. Callers that can legitimately
+ * carry on without one - a build, or a public page whose data is optional -
+ * need to tell "not configured" apart from "configured but failing", because
+ * those warrant very different log lines.
+ */
+export function hasDatabaseUrl(): boolean {
+  const value = process.env.DATABASE_URL;
+  return typeof value === "string" && value.trim() !== "";
+}
+
 export function databaseUrl(): string {
   return required(
     "DATABASE_URL",
