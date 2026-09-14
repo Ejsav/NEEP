@@ -4,6 +4,9 @@ import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { StickyCta } from "@/components/site/sticky-cta";
 import { SlotImage } from "@/components/site/slot-image";
+import { SectionHeader } from "@/components/sections/section-header";
+import { Fact, FactList } from "@/components/sections/fact-list";
+import { RuledItem, RuledList } from "@/components/sections/ruled-list";
 import { responseSlaHours } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
 import { VERTICALS } from "@/lib/domain/verticals";
@@ -57,27 +60,51 @@ export default function HomePage() {
       />
 
       {/* ------------------------------------------------------------- Hero */}
+      {/*
+        An editorial masthead rather than a centred stack: the headline runs
+        wide, a rule closes it, and the two things a visitor needs next sit
+        underneath in their own columns - the argument on the left, the facts on
+        the right. Every line in the fact list is a verifiable statement about
+        how the company operates, never a claim about work it has not done.
+      */}
       <section className="border-b border-line">
-        <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-24">
-          <div className="flex max-w-3xl flex-col gap-6">
-            <span className="eyebrow">{siteConfig.serviceArea.description}</span>
-            <h1 className="text-display-1 font-display text-ink">
-              Planning an event shouldn&apos;t mean managing twelve strangers.
-            </h1>
-            <p className="max-w-measure text-body-lg text-ink-muted">
-              {siteConfig.name} is one place to start. We find the venue, source
-              and vet the vendors, hold the timeline, and run the logistics — so
-              you make decisions instead of chasing quotes.
-            </p>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <ButtonLink href="/plan" size="lg">
-                Start planning
-              </ButtonLink>
-              <p className="text-small text-ink-muted">
-                Five questions, about ninety seconds. A real reply within{" "}
-                {slaHours} hours.
+        <div className="mx-auto max-w-content px-5 pb-14 pt-12 sm:px-8 sm:pb-20 sm:pt-20">
+          <span className="eyebrow">{siteConfig.serviceArea.description}</span>
+          <h1 className="mt-5 max-w-[19ch] text-display-1 font-display text-ink">
+            Planning an event shouldn&apos;t mean managing twelve strangers.
+          </h1>
+
+          <div className="mt-10 grid gap-10 border-t border-line pt-8 sm:mt-12 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
+            <div className="flex max-w-measure flex-col gap-6">
+              <p className="text-body-lg text-ink-muted">
+                {siteConfig.name} is one place to start. We find the venue,
+                source and vet the vendors, hold the timeline, and run the
+                logistics — so you make decisions instead of chasing quotes.
               </p>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <ButtonLink href="/plan" size="lg">
+                  Start planning
+                </ButtonLink>
+                <p className="text-small text-ink-muted">
+                  Five questions, about ninety seconds.
+                </p>
+              </div>
             </div>
+
+            <FactList>
+              <Fact term="Where">
+                {siteConfig.serviceArea.state}. Nowhere else, yet — and we will
+                say so rather than take the booking.
+              </Fact>
+              <Fact term="What">
+                Weddings, corporate events, private events, and venue and vendor
+                coordination on its own.
+              </Fact>
+              <Fact term="Reply">
+                Within {slaHours} hours, written by a person who read what you
+                sent.
+              </Fact>
+            </FactList>
           </div>
         </div>
 
@@ -99,15 +126,10 @@ export default function HomePage() {
       {/* --------------------------------------------------- The four things */}
       <section className="border-b border-line bg-paper-sunk">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <Reveal as="header" className="flex max-w-measure flex-col gap-3">
-            <h2 className="text-display-2 font-display text-ink">
-              Four things, done properly.
-            </h2>
-            <p className="text-body-lg text-ink-muted">
-              We do not do everything. These are the four we do, and the list is
-              not going to grow to win a booking.
-            </p>
-          </Reveal>
+          <SectionHeader
+            title="Four things, done properly."
+            lede="We do not do everything. These are the four we do, and the list is not going to grow to win a booking."
+          />
 
           <ul className="mt-10 grid gap-4 sm:grid-cols-2">
             {VERTICALS.map((vertical, index) => (
@@ -138,33 +160,30 @@ export default function HomePage() {
       {/* ---------------------------------------------------- How it works */}
       <section className="border-b border-line">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <Reveal as="header" className="flex max-w-measure flex-col gap-3">
-            <h2 className="text-display-2 font-display text-ink">
-              How it works.
-            </h2>
-            <p className="text-body-lg text-ink-muted">
-              Three steps. No discovery call you have to sit through before
-              anyone tells you anything useful.
-            </p>
-          </Reveal>
+          <SectionHeader
+            title="How it works."
+            lede="Three steps. No discovery call you have to sit through before anyone tells you anything useful."
+          />
 
-          <ol className="mt-10 grid gap-6 sm:grid-cols-3">
-            <Step n="01" title="Tell us what you're planning">
-              Five short questions. Event type, date, guest count, where you are
-              with a venue, and what you want us to run. We save your answers as
-              you go.
-            </Step>
-            <Step n="02" title="We come back with a real answer">
-              Within {slaHours} hours: what we&apos;d do, roughly what it takes,
-              and the questions we&apos;d need answered next. Written by a
-              person who read your form.
-            </Step>
-            <Step n="03" title="We say if we're not a fit">
-              If your event is outside Connecticut, outside these four
-              categories, or beyond what we can do well, we tell you and point
-              you elsewhere. That costs us bookings and it is the point.
-            </Step>
-          </ol>
+          <div className="mt-10 sm:mt-12">
+            <RuledList as="ol" columns={3}>
+              <RuledItem as="li" index="01" heading="Tell us what you're planning">
+                Five short questions. Event type, date, guest count, where you
+                are with a venue, and what you want us to run. We save your
+                answers as you go.
+              </RuledItem>
+              <RuledItem as="li" index="02" heading="We come back with a real answer" delayMs={60}>
+                Within {slaHours} hours: what we&apos;d do, roughly what it
+                takes, and the questions we&apos;d need answered next. Written
+                by a person who read your form.
+              </RuledItem>
+              <RuledItem as="li" index="03" heading="We say if we're not a fit" delayMs={120}>
+                If your event is outside Connecticut, outside these four
+                categories, or beyond what we can do well, we tell you and point
+                you elsewhere. That costs us bookings and it is the point.
+              </RuledItem>
+            </RuledList>
+          </div>
         </div>
       </section>
 
@@ -189,7 +208,7 @@ export default function HomePage() {
               </p>
             </Reveal>
 
-            <Reveal className="flex flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">
+            <Reveal className="flex h-fit flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">
               <h3 className="font-display text-heading-2 text-ink">
                 What we will not do
               </h3>
@@ -213,17 +232,24 @@ export default function HomePage() {
       </section>
 
       {/* ------------------------------------------------------- Closing CTA */}
+      {/*
+        The heading and the action sit on one line at desktop width rather than
+        stacking down the left edge: the visitor has reached the bottom having
+        already read the argument, so this is a door, not another pitch.
+      */}
       <section>
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <Reveal className="flex max-w-measure flex-col gap-5">
-            <h2 className="text-display-2 font-display text-ink">
-              Start with the thing you already know.
-            </h2>
-            <p className="text-body-lg text-ink-muted">
-              You do not need a finished plan to get a useful answer. A date, a
-              rough guest count, and the part you are dreading is enough.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Reveal className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-16">
+            <div className="flex max-w-measure flex-col gap-4">
+              <h2 className="text-display-2 font-display text-ink">
+                Start with the thing you already know.
+              </h2>
+              <p className="text-body-lg text-ink-muted">
+                You do not need a finished plan to get a useful answer. A date, a
+                rough guest count, and the part you are dreading is enough.
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-3 lg:pb-1.5">
               <ButtonLink href="/plan" size="lg">
                 Start planning
               </ButtonLink>
@@ -236,7 +262,14 @@ export default function HomePage() {
                 </a>
               ) : (
                 <p className="text-small text-ink-muted">
-                  Prefer email? The form reaches the same inbox.
+                  Prefer to write instead?{" "}
+                  <Link
+                    href="/contact"
+                    className="text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                  >
+                    Contact us directly
+                  </Link>
+                  .
                 </p>
               )}
             </div>
@@ -246,26 +279,6 @@ export default function HomePage() {
 
       <StickyCta />
     </>
-  );
-}
-
-function Step({
-  n,
-  title,
-  children,
-}: {
-  n: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Reveal as="li" className="flex flex-col gap-2 border-t-2 border-sage pt-4">
-      <span className="eyebrow text-sage" aria-hidden="true">
-        {n}
-      </span>
-      <h3 className="font-display text-heading-2 text-ink">{title}</h3>
-      <p className="text-small text-ink-muted">{children}</p>
-    </Reveal>
   );
 }
 

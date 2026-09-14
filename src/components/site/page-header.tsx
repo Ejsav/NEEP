@@ -3,6 +3,12 @@ import { Breadcrumbs } from "@/components/site/breadcrumbs";
 /**
  * Shared header for the non-pillar pages: breadcrumb, eyebrow, h1, standfirst.
  *
+ * Same masthead as the homepage and the pillars - the title runs across the
+ * measure, a rule closes it, and the standfirst sits underneath. Pages that
+ * have genuine reference material to show at the top pass it as `aside` and it
+ * takes the second column; pages that do not get a single-column standfirst
+ * rather than a column of nothing.
+ *
  * The breadcrumb is rendered here rather than assumed, because BreadcrumbList
  * schema may only be emitted by a page that actually shows the trail.
  */
@@ -11,20 +17,31 @@ export function PageHeader({
   title,
   standfirst,
   crumb,
+  aside,
 }: {
   eyebrow: string;
   title: string;
   standfirst: string;
   crumb: { href: string; label: string };
+  aside?: React.ReactNode;
 }) {
   return (
     <div className="border-b border-line">
-      <div className="mx-auto max-w-content px-5 pb-12 pt-6 sm:px-8 sm:pb-16">
+      <div className="mx-auto max-w-content px-5 pb-12 pt-4 sm:px-8 sm:pb-16">
         <Breadcrumbs items={[crumb]} />
-        <div className="mt-6 flex max-w-measure flex-col gap-4">
-          <span className="eyebrow">{eyebrow}</span>
-          <h1 className="text-display-1 font-display text-ink">{title}</h1>
-          <p className="text-body-lg text-ink-muted">{standfirst}</p>
+        <span className="eyebrow mt-6 block">{eyebrow}</span>
+        <h1 className="mt-4 max-w-[19ch] text-display-1 font-display text-ink">
+          {title}
+        </h1>
+        <div
+          className={
+            aside
+              ? "mt-10 grid gap-10 border-t border-line pt-8 sm:mt-12 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16"
+              : "mt-6"
+          }
+        >
+          <p className="max-w-measure text-body-lg text-ink-muted">{standfirst}</p>
+          {aside}
         </div>
       </div>
     </div>

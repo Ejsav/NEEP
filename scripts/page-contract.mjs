@@ -56,6 +56,14 @@ const BANNED_PATTERNS = [
   { name: "fabricated volume", re: /\b\d[\d,]*\+?\s*(events|weddings|clients|couples) (planned|served|delivered)\b/i },
 ];
 
+/**
+ * `--color-paper` in each scheme, as the browser reports it. A mismatch means
+ * the theme tokens are not switching, which is invisible in the source and
+ * obvious here.
+ */
+const LIGHT_PAPER = "rgb(250, 247, 242)";
+const DARK_PAPER = "rgb(22, 19, 15)";
+
 /** Banned as a nav label regardless of surrounding copy. */
 const BANNED_NAV_LABELS = ["fleet"];
 
@@ -78,7 +86,12 @@ async function routesFromSitemap() {
 
 async function checkRoute(browser, route) {
   currentRoute = route;
-  const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const context = await browser.newContext({
+    viewport: { width: 375, height: 812 },
+    // Pinned so the palette check below is deterministic. Chromium's own
+    // default has changed between versions.
+    colorScheme: "light",
+  });
   const page = await context.newPage();
 
   const consoleErrors = [];
@@ -173,8 +186,47 @@ async function checkRoute(browser, route) {
   const lang = await page.getAttribute("html", "lang");
   check("html lang set", Boolean(lang), lang ?? "missing");
 
+  // --- Palette ------------------------------------------------------------
+  // Tailwind v4 resolves `@theme` at build time and flattens it to the top
+  // level, so a `@theme` written inside `@media (prefers-color-scheme: dark)`
+  // loses its condition and paints every visitor dark. That shipped once. This
+  // asserts the compiled result rather than the source, which is the only
+  // version that can be wrong.
+  const background = await page.evaluate(
+    () => getComputedStyle(document.body).backgroundColor,
+  );
+  check(
+    "light scheme renders the light palette",
+    background === LIGHT_PAPER,
+    `body background is ${background}, expected ${LIGHT_PAPER}`,
+  );
+
   check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 2).join(" | "));
 
+  await context.close();
+}
+
+/**
+ * The other half of the palette check: prove the dark tokens are reachable at
+ * all. A build that hardcoded the light values would pass every per-route check
+ * above and still have no dark mode.
+ */
+async function checkDarkScheme(browser) {
+  currentRoute = "/ (dark scheme)";
+  const context = await browser.newContext({
+    viewport: { width: 375, height: 812 },
+    colorScheme: "dark",
+  });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  const background = await page.evaluate(
+    () => getComputedStyle(document.body).backgroundColor,
+  );
+  check(
+    "dark scheme renders the dark palette",
+    background === DARK_PAPER,
+    `body background is ${background}, expected ${DARK_PAPER}`,
+  );
   await context.close();
 }
 
@@ -186,6 +238,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: resolveChromium() });
   try {
     for (const route of routes) await checkRoute(browser, route);
+    await checkDarkScheme(browser);
   } finally {
     await browser.close();
   }

@@ -34,6 +34,12 @@ export type Vertical = {
   metaDescription: string;
   h1: string;
   intro: string;
+  /**
+   * Standfirst for the "What we take on" section. Written per vertical, like
+   * everything else here: a sentence that would read correctly on two of these
+   * pages is a sentence that belongs on neither.
+   */
+  includesLede: string;
   /** What the engagement actually covers. */
   includes: { heading: string; body: string }[];
   /** The objection this buyer actually has, answered rather than dodged. */
@@ -58,6 +64,8 @@ export const VERTICALS: Vertical[] = [
     h1: "Connecticut wedding planning, without the second full-time job.",
     intro:
       "A Connecticut wedding is roughly a dozen separate contracts, four of which you will only discover you needed in month nine. We hold all of them, so the planning stops being a project you manage after work.",
+    includesLede:
+      "A wedding is a dozen contracts, one date, and no second attempt. These are the four places that decide whether the day runs.",
     includes: [
       {
         heading: "Venue sourcing that accounts for the constraints",
@@ -107,6 +115,8 @@ export const VERTICALS: Vertical[] = [
     h1: "Corporate events in Connecticut, with one person accountable.",
     intro:
       "The problem with a company event is rarely the event. It is that organising it lands on someone whose actual job is something else, and who now owns nine vendor relationships and a procurement process that was not designed for any of them.",
+    includesLede:
+      "Everything below is work that would otherwise sit on top of someone's actual job, usually in the six weeks before the date.",
     includes: [
       {
         heading: "One point of accountability",
@@ -156,6 +166,8 @@ export const VERTICALS: Vertical[] = [
     h1: "The party you want to be at, not the one you are running.",
     intro:
       "Milestone events get planned by the person they are least fun for. A sixtieth, a fiftieth anniversary, a graduation — someone in the family ends up holding the caterer, the rentals and the seating chart, and spends the evening checking on things.",
+    includesLede:
+      "Milestone events are small enough to look easy and complicated enough to eat a month. This is the part we take off you.",
     includes: [
       {
         heading: "Scope set to your budget, not the other way round",
@@ -204,6 +216,8 @@ export const VERTICALS: Vertical[] = [
     h1: "You have the vision. We run the logistics.",
     intro:
       "Some people do not want a planner. They know exactly what they want, they have picked most of it, and what they actually need is someone to make the pieces arrive in the right order and deal with it when one of them does not.",
+    includesLede:
+      "You have already made the decisions. This is the execution layer that sits under them, from the first site visit to the last van leaving.",
     includes: [
       {
         heading: "Venue sourcing, on your brief",

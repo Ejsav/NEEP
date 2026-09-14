@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
 
+  /*
+   * Social-card fonts are read from disk at render time. Next's file tracing
+   * follows static imports, not a path built with join(), so without this the
+   * .ttf files are pruned from the deployment bundle and card generation fails
+   * at runtime with ENOENT - on a route that built perfectly.
+   */
+  outputFileTracingIncludes: {
+    "/**": ["./src/app/_og/*.ttf"],
+  },
+
   // Fail the build on a type error rather than shipping a broken deploy.
   // Next 16 removed `next lint`, so ESLint runs as its own step in `pnpm verify`.
   typescript: { ignoreBuildErrors: false },

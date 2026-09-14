@@ -124,9 +124,26 @@
 /* --- Dark: the same design, inverted with intent. ------------------------
    Not a tint filter. Ground becomes a warm near-black (never #000), the accent
    lifts so it stays legible on dark, and borders gain enough contrast to keep
-   structure readable. */
+   structure readable.
+
+   DELIBERATELY a plain `:root` rule, not a nested `@theme`. Tailwind v4
+   resolves `@theme` at build time and flattens it to the top level - a `@theme`
+   written inside a media query has its condition discarded, so these values
+   land unconditionally and every visitor gets the dark palette. That is exactly
+   what happened here, and it shipped. Utilities compile to `var(--color-*)`,
+   so overriding the same custom properties in a real media query is both the
+   supported route and the one that actually respects the OS setting.
+
+   `color-scheme` is set alongside so form controls, scrollbars and the canvas
+   the browser paints behind the page follow the same switch. */
+:root {
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
+    color-scheme: dark;
+
     --color-paper: #16130f;
     --color-paper-raised: #1f1b16;
     --color-paper-sunk: #110e0b;

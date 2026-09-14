@@ -9,12 +9,13 @@ import { VERTICALS } from "@/lib/domain/verticals";
  * No JavaScript. Four service links wrap onto a second line on a phone, which
  * is a better trade than a menu button that exists to hide four links behind a
  * tap. The sticky action bar carries the phone and the primary action on small
- * screens, so the header does not have to.
+ * screens, so the header does not - and below `sm` the header actions are
+ * hidden outright rather than duplicated.
  */
 export function SiteHeader() {
   return (
     <header className="border-b border-line bg-paper/90 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-wide flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      <div className="mx-auto flex max-w-wide flex-col gap-2.5 px-5 py-3.5 sm:gap-3 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <Link
           href="/"
           className="group inline-flex flex-col rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
@@ -39,7 +40,12 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        {/*
+          Hidden on phones, where the fixed action bar already carries a phone
+          link and the same primary action within thumb reach. Repeating it here
+          costs about 60px of the first screen and buys nothing.
+        */}
+        <div className="hidden items-center gap-4 sm:flex">
           {siteConfig.contact.phone ? (
             <a
               href={`tel:${siteConfig.contact.phone}`}

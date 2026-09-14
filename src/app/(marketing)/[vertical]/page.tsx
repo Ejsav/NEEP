@@ -7,6 +7,9 @@ import { StickyCta } from "@/components/site/sticky-cta";
 import { SlotImage, hasSlotImage } from "@/components/site/slot-image";
 import type { ImageSlotName } from "@/lib/images";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { SectionHeader } from "@/components/sections/section-header";
+import { RuledItem, RuledList } from "@/components/sections/ruled-list";
+import { Fact, FactList } from "@/components/sections/fact-list";
 import { responseSlaHours, siteUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
 import { VERTICALS, verticalBySlug } from "@/lib/domain/verticals";
@@ -109,67 +112,79 @@ export default async function VerticalPage({
       </div>
 
       {/* ------------------------------------------------------------- Hero */}
+      {/*
+        The same masthead as the homepage: headline across the full measure, a
+        rule, then the argument on the left and the reference column on the
+        right. What fills that right column is the only thing that varies - the
+        photograph when the slot has one, the standing facts when it does not.
+        One layout either way, so the page is never designed around an image
+        that has not arrived.
+      */}
       <section className="border-b border-line">
-        <div
-          className={
-            hasHero
-              ? "mx-auto grid max-w-content items-center gap-8 px-5 pb-14 pt-6 sm:px-8 sm:pb-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14"
-              : "mx-auto max-w-content px-5 pb-14 pt-6 sm:px-8 sm:pb-20"
-          }
-        >
-          {/*
-            Two columns when there is a photograph, one when there is not. The
-            split carries a portrait image as naturally as a landscape one,
-            which is why it is used here rather than a full-bleed band.
-          */}
-          <div className="flex max-w-3xl flex-col gap-6">
-            <span className="eyebrow">
-              {siteConfig.serviceArea.description} &middot; {vertical.title}
-            </span>
-            <h1 className="text-display-1 font-display text-ink">{vertical.h1}</h1>
-            <p className="max-w-measure text-body-lg text-ink-muted">
-              {vertical.intro}
-            </p>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <ButtonLink href={plannerHref} size="lg">
-                Start planning
-              </ButtonLink>
-              <p className="text-small text-ink-muted">
-                A real reply within {slaHours} hours.
-              </p>
-            </div>
-          </div>
+        <div className="mx-auto max-w-content px-5 pb-14 pt-4 sm:px-8 sm:pb-20">
+          <span className="eyebrow">
+            {siteConfig.serviceArea.description} &middot; {vertical.title}
+          </span>
+          <h1 className="mt-5 max-w-[19ch] text-display-1 font-display text-ink">
+            {vertical.h1}
+          </h1>
 
-          {hasHero ? (
-            <SlotImage
-              name={heroSlot}
-              priority
-              sizes="(min-width: 1024px) 46vw, 100vw"
-              className="aspect-[4/3] w-full rounded-xl object-cover lg:aspect-[5/6]"
-            />
-          ) : null}
+          <div className="mt-10 grid gap-10 border-t border-line pt-8 sm:mt-12 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
+            <div className="flex max-w-measure flex-col gap-6">
+              <p className="text-body-lg text-ink-muted">{vertical.intro}</p>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <ButtonLink href={plannerHref} size="lg">
+                  Start planning
+                </ButtonLink>
+                <p className="text-small text-ink-muted">
+                  A real reply within {slaHours} hours.
+                </p>
+              </div>
+            </div>
+
+            {hasHero ? (
+              <SlotImage
+                name={heroSlot}
+                priority
+                sizes="(min-width: 1024px) 40vw, 100vw"
+                className="aspect-[4/3] w-full rounded-xl object-cover lg:aspect-[5/6]"
+              />
+            ) : (
+              <FactList>
+                <Fact term="Where">
+                  {siteConfig.serviceArea.state} only. If your event is
+                  elsewhere we will say so rather than take the booking.
+                </Fact>
+                <Fact term="Scope">{vertical.homeBlurb}</Fact>
+                <Fact term="Reply">
+                  Within {slaHours} hours, written by a person who read what you
+                  sent.
+                </Fact>
+              </FactList>
+            )}
+          </div>
         </div>
       </section>
 
       {/* --------------------------------------------------------- What we do */}
       <section className="border-b border-line bg-paper-sunk">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <Reveal as="h2" className="text-display-2 font-display text-ink">
-            What we take on
-          </Reveal>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2">
-            {vertical.includes.map((item, index) => (
-              <Reveal
-                key={item.heading}
-                delayMs={index * 60}
-                className="flex flex-col gap-2 rounded-xl border border-line bg-paper-raised p-6"
-              >
-                <h3 className="font-display text-heading-2 text-ink">
-                  {item.heading}
-                </h3>
-                <p className="text-small text-ink-muted">{item.body}</p>
-              </Reveal>
-            ))}
+          <SectionHeader
+            title="What we take on"
+            lede={vertical.includesLede}
+          />
+          <div className="mt-10 sm:mt-12">
+            <RuledList>
+              {vertical.includes.map((item, index) => (
+                <RuledItem
+                  key={item.heading}
+                  heading={item.heading}
+                  delayMs={index * 60}
+                >
+                  {item.body}
+                </RuledItem>
+              ))}
+            </RuledList>
           </div>
         </div>
       </section>
@@ -187,7 +202,7 @@ export default async function VerticalPage({
               </p>
             </Reveal>
 
-            <Reveal className="flex flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">
+            <Reveal className="flex h-fit flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">
               <h3 className="font-display text-heading-2 text-ink">
                 What stays yours
               </h3>
@@ -210,30 +225,43 @@ export default async function VerticalPage({
       {/* ------------------------------------------------------- Closing CTA */}
       <section>
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <Reveal className="flex max-w-measure flex-col gap-5">
-            <h2 className="text-display-2 font-display text-ink">
-              {vertical.ctaHeading}
-            </h2>
-            <p className="text-body-lg text-ink-muted">{vertical.ctaBody}</p>
-            <div>
-              <ButtonLink href={plannerHref} size="lg">
-                Start planning
-              </ButtonLink>
+          <Reveal className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-16">
+            <div className="flex max-w-measure flex-col gap-4">
+              <h2 className="text-display-2 font-display text-ink">
+                {vertical.ctaHeading}
+              </h2>
+              <p className="text-body-lg text-ink-muted">{vertical.ctaBody}</p>
+              <div className="mt-1">
+                <ButtonLink href={plannerHref} size="lg">
+                  Start planning
+                </ButtonLink>
+              </div>
             </div>
-            <p className="text-small text-ink-muted">
-              Planning something else?{" "}
-              {VERTICALS.filter((v) => v.slug !== vertical.slug).map((v, i, arr) => (
-                <span key={v.slug}>
-                  <Link
-                    href={`/${v.slug}`}
-                    className="underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
-                  >
-                    {v.title.toLowerCase()}
-                  </Link>
-                  {i < arr.length - 2 ? ", " : i === arr.length - 2 ? " or " : "."}
-                </span>
-              ))}
-            </p>
+            {/*
+              The other three pillars, as a ruled index rather than a sentence
+              of commas. A visitor who has read to the bottom of the wrong page
+              is one click from the right one, and it gives every pillar three
+              inbound links from indexed content instead of leaving the weakest
+              of the four an orphan.
+            */}
+            <nav aria-label="Other services" className="lg:pt-2">
+              <span className="eyebrow text-ink-subtle">Planning something else?</span>
+              <ul className="mt-3 flex flex-col border-t border-line">
+                {VERTICALS.filter((v) => v.slug !== vertical.slug).map((other) => (
+                  <li key={other.slug} className="border-b border-line">
+                    <Link
+                      href={`/${other.slug}`}
+                      className="flex items-center justify-between gap-4 py-3 text-small text-ink transition-colors duration-150 hover:text-accent"
+                    >
+                      {other.title}
+                      <span aria-hidden="true" className="text-ink-subtle">
+                        &rarr;
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </Reveal>
         </div>
       </section>
