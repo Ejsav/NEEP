@@ -32,5 +32,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),
+    ...["how-we-work", "pricing", "about", "contact"].map((slug) => ({
+      url: `${base}/${slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    ...["privacy", "terms", "accessibility"].map((slug) => ({
+      url: `${base}/${slug}`,
+      lastModified,
+      changeFrequency: "yearly" as const,
+      priority: 0.2,
+    })),
   ];
 }
