@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/guard";
 import {
   getAttribution,
   getInquiry,
+  getNotes,
   getNotifications,
   isOverdue,
 } from "@/lib/inquiries/queries";
@@ -17,7 +18,11 @@ import {
 } from "@/lib/domain/inquiry-options";
 import { AdminBar } from "@/components/admin/admin-bar";
 import { Button } from "@/components/ui/button";
-import { markRespondedAction, updateStatusAction } from "@/app/admin/actions";
+import {
+  addNoteAction,
+  markRespondedAction,
+  updateStatusAction,
+} from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +63,10 @@ export default async function InquiryDetailPage({
   const inquiry = await getInquiry(id);
   if (!inquiry) notFound();
 
-  const [attribution, notifications] = await Promise.all([
+  const [attribution, notifications, notes] = await Promise.all([
     getAttribution(inquiry.id),
     getNotifications(inquiry.id),
+    getNotes(inquiry.id),
   ]);
 
   const overdue = isOverdue(inquiry);
@@ -248,6 +254,63 @@ export default async function InquiryDetailPage({
             </p>
           </Panel>
         ) : null}
+
+        {/*
+          ------------------------------------------------------------ Notes
+
+          Append-only. There is no edit and no delete, because this is the
+          record of what was said about a live commercial relationship - "we
+          told them the barn has no generator" needs to survive the person who
+          wrote it leaving, and a record that can be quietly rewritten is not a
+          record. The author is stored as they were named at the time.
+        */}
+        <Panel title="Notes">
+          {notes.length === 0 ? (
+            <p className="text-small text-ink-subtle">
+              Nothing recorded yet. What was said on a call is worth writing
+              down here — it is the only place it survives.
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-4">
+              {notes.map((note) => (
+                <li
+                  key={note.id}
+                  className="border-l-2 border-line-strong pl-4 text-small"
+                >
+                  <p className="whitespace-pre-wrap text-ink">{note.body}</p>
+                  <p className="mt-1 text-micro text-ink-subtle">
+                    {note.authorLabel} &middot;{" "}
+                    <time dateTime={note.createdAt.toISOString()}>
+                      {formatDateTime(note.createdAt)}
+                    </time>
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <form action={addNoteAction} className="mt-2 flex flex-col gap-3">
+            <input type="hidden" name="inquiryId" value={inquiry.id} />
+            <label className="flex flex-col gap-1">
+              <span className="text-micro font-medium text-ink-muted">
+                Add a note
+              </span>
+              <textarea
+                name="body"
+                rows={3}
+                maxLength={4000}
+                required
+                placeholder="What was agreed, what was promised, what to chase."
+                className="min-h-24 w-full resize-y rounded-md border border-line-strong bg-paper px-3 py-2 text-small text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              />
+            </label>
+            <div>
+              <Button type="submit" variant="secondary">
+                Save note
+              </Button>
+            </div>
+          </form>
+        </Panel>
 
         {/* ------------------------------------------------- Attribution */}
         <Panel title="Attribution">

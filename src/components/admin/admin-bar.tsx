@@ -16,6 +16,19 @@ export function AdminBar({
           >
             NEEP Admin
           </Link>
+          {/*
+            Two sections, so it is a plain row rather than a navigation pattern
+            waiting for a third. `aria-label` because "Inquiries / Funnel" is
+            not self-evidently the admin's own navigation next to the wordmark.
+          */}
+          <nav aria-label="Admin" className="flex items-center gap-4 text-small">
+            <Link href="/admin/inquiries" className="text-ink-muted hover:text-accent">
+              Inquiries
+            </Link>
+            <Link href="/admin/funnel" className="text-ink-muted hover:text-accent">
+              Funnel
+            </Link>
+          </nav>
           <Link
             href="/"
             className="text-micro text-ink-subtle underline underline-offset-4 hover:text-accent"

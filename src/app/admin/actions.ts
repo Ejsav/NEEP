@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { inquiries } from "@/lib/db/schema";
+import { inquiries, inquiryNotes } from "@/lib/db/schema";
 import { requireAdminOrNull } from "@/lib/auth/guard";
 import { logout, recordAudit } from "@/lib/auth/session";
 import { getRequestContext } from "@/lib/security/request-context";
@@ -110,5 +110,65 @@ export async function updateStatusAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/admin/inquiries");
+  revalidatePath(`/admin/inquiries/${id}`);
+}
+
+/** Hard cap. Long enough for a real account of a call, short enough to bound the row. */
+const MAX_NOTE_LENGTH = 4000;
+
+/**
+ * Appends a note to an inquiry.
+ *
+ * Append-only by design: there is no edit action and no delete action, because
+ * this is the record of what was said about a live commercial relationship and
+ * a record that can be quietly rewritten is not a record. The author's name is
+ * captured at write time rather than joined at read time, so removing a staff
+ * account later leaves the history intact.
+ *
+ * Like every action here it re-checks authorization itself. Being reachable
+ * only from a page behind the admin layout proves nothing - this is a public
+ * POST endpoint.
+ */
+export async function addNoteAction(formData: FormData): Promise<void> {
+  const admin = await requireAdminOrNull();
+  if (!admin) redirect("/admin/login");
+
+  const id = formData.get("inquiryId");
+  const body = formData.get("body");
+
+  if (typeof id !== "string" || id === "") return;
+  if (typeof body !== "string") return;
+
+  const text = body.trim().slice(0, MAX_NOTE_LENGTH);
+  if (text === "") return;
+
+  // The inquiry must exist. Without this, a forged id writes an orphan row that
+  // no page will ever show and nobody will ever find.
+  const [target] = await db
+    .select({ reference: inquiries.reference })
+    .from(inquiries)
+    .where(eq(inquiries.id, id))
+    .limit(1);
+  if (!target) return;
+
+  const context = await getRequestContext();
+
+  await db.insert(inquiryNotes).values({
+    inquiryId: id,
+    authorUserId: admin.user.id,
+    authorLabel: admin.user.name || admin.user.email,
+    body: text,
+  });
+
+  await recordAudit({
+    actorUserId: admin.user.id,
+    actorLabel: admin.user.email,
+    action: "inquiry.note_added",
+    entityType: "inquiry",
+    entityId: id,
+    ipHash: context.ipHash,
+    metadata: { reference: target.reference, length: text.length },
+  });
+
   revalidatePath(`/admin/inquiries/${id}`);
 }

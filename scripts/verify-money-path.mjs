@@ -525,6 +525,35 @@ const submittedRef = { value: null };
   await ctx.close();
 }
 
+/** Addresses this script submits. Nothing else is ever deleted. */
+const TEST_EMAILS = ["browser-verify@example.com", "nojs-verify@example.com"];
+
+async function cleanUpTestInquiries() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.log("\nSkipped cleanup: DATABASE_URL is not set.");
+    return;
+  }
+  try {
+    const { default: postgres } = await import("postgres");
+    const sql = postgres(url, { max: 1 });
+    try {
+      const deleted = await sql`
+        delete from inquiries where email = any(${TEST_EMAILS}) returning reference
+      `;
+      console.log(
+        `\nCleaned up ${deleted.length} test inquir${deleted.length === 1 ? "y" : "ies"}.`,
+      );
+    } finally {
+      await sql.end({ timeout: 5 });
+    }
+  } catch (error) {
+    // A cleanup failure must never turn a green run red - it is hygiene, not a
+    // check. Say so loudly enough that it gets noticed.
+    console.log(`\nCleanup failed (rows left behind): ${error.message ?? error}`);
+  }
+}
+
 check("no uncaught page errors", pageErrors.length === 0, pageErrors.slice(0, 3).join(" | "));
 check(
   "no failed requests",
@@ -534,6 +563,15 @@ check(
 check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
 
 await browser.close();
+
+/*
+ * The two inquiries this script submits are real rows in a real table, and
+ * leaving them behind means every run adds two more. That is noise in a local
+ * database and contamination in any environment that matters - so the script
+ * removes exactly what it created, keyed on the addresses it used, and says so
+ * rather than doing it silently.
+ */
+await cleanUpTestInquiries();
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

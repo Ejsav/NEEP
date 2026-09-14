@@ -299,6 +299,41 @@ export const adminUsers = pgTable(
   (t) => [uniqueIndex("admin_users_email_key").on(t.email)],
 );
 
+/**
+ * Operator notes against an inquiry.
+ *
+ * `authorLabel` is denormalised on purpose. The foreign key is SET NULL on
+ * delete so removing a staff account never destroys the history of what was
+ * agreed with a customer - but a note whose author has become NULL is a note
+ * nobody wrote, which is worse than useless when the question is "who promised
+ * them that?". The label is captured at write time and never changes.
+ *
+ * Notes are append-only. There is no edit and no delete: this is the record of
+ * what was said about a live commercial relationship, and a record that can be
+ * quietly rewritten is not a record.
+ */
+export const inquiryNotes = pgTable(
+  "inquiry_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inquiryId: uuid("inquiry_id")
+      .notNull()
+      .references(() => inquiries.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id").references(() => adminUsers.id, {
+      onDelete: "set null",
+    }),
+    /** Who wrote it, as they were named at the time. */
+    authorLabel: text("author_label").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("inquiry_notes_inquiry_idx").on(t.inquiryId, t.createdAt),
+  ],
+);
+
 export const adminSessions = pgTable(
   "admin_sessions",
   {
@@ -601,6 +636,7 @@ export type InquiryAttribution = typeof inquiryAttribution.$inferSelect;
 export type NewInquiryAttribution = typeof inquiryAttribution.$inferInsert;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type NotificationRecord = typeof notifications.$inferSelect;
+export type InquiryNote = typeof inquiryNotes.$inferSelect;
 export type InquiryDraft = typeof inquiryDrafts.$inferSelect;
 export type NewInquiryDraft = typeof inquiryDrafts.$inferInsert;
 export type FunnelEvent = typeof funnelEvents.$inferSelect;
