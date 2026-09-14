@@ -386,10 +386,16 @@ goal-gradient effect); URL search-param steps (works without JS only over GET,
 which leaks answers into URLs, referrers and analytics, and cannot be
 rate-limited the same way).
 
-**Partial persistence.** A second Server Action, `saveDraft(step, formData)` in
-`plan/draft-actions.ts` — a Server Action rather than a Route Handler so the
-rate-limit, token and context idiom stays identical and no second public
-surface appears.
+**Partial persistence.** `POST /api/draft` — a Route Handler, **revised from the
+Server Action this plan originally specified**. Every Server Action invocation
+makes Next refresh the route it was called from; on `/plan`, which is
+force-dynamic, that re-render reconciled into a form the customer was actively
+typing into, and in testing it landed between two keystrokes and emptied the
+name fields that had just been filled. The submission then failed validation for
+fields the customer had demonstrably completed. Losing a customer's typing to a
+background save of reporting data is not a trade worth making. The handler
+applies the identical checks in the identical order, so the only thing given up
+is the shared idiom.
 
 - *Identity:* an httpOnly, `SameSite=Lax`, 12h `neep_draft` cookie holding a
   random token. The database stores only `hmac()` of it (`security/hash.ts`),
@@ -402,7 +408,11 @@ surface appears.
   2500ms `MIN_AGE` would wrongly reject a fast step 1, so `verifyFormToken`
   gains an optional `{ minAgeMs }` argument defaulting to today's behaviour;
   the draft scope passes `0`. Final submit keeps the full timing check.
-- *Reconciliation:* `submitInquiry` resolves the draft by cookie hash and writes
+- *Transport:* `fetch(..., { keepalive: true })`, fire-and-forget. `keepalive`
+  so a save started as someone closes the tab still completes — an abandoned
+  funnel is precisely the case this feature exists for, and it is the one where
+  the page is going away.
+- *Reconciliation:* `submitPlan` resolves the draft by cookie hash and writes
   `inquiries.draft_id` in the same insert. `draft_id` is **unique**, so exactly
   one inquiry per draft is a database guarantee, not a convention. The draft is
   marked `converted`. A missing cookie (cleared, or the no-JS path) yields

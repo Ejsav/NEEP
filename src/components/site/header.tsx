@@ -32,7 +32,7 @@ export function SiteHeader() {
               {siteConfig.contact.phoneDisplay ?? siteConfig.contact.phone}
             </a>
           ) : null}
-          <ButtonLink href="/start" variant="primary">
+          <ButtonLink href="/plan" variant="primary">
             Start planning
           </ButtonLink>
         </div>

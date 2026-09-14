@@ -71,6 +71,45 @@ export const BUDGET_BANDS = [
 
 export const BUDGET_BAND_VALUES = BUDGET_BANDS.map((b) => b.value);
 
+/**
+ * How much of the event we run.
+ *
+ * Asked as its own question rather than mixed into the module checkboxes,
+ * because it is a different kind of decision: the tier sets the shape of the
+ * engagement, the modules sit on top of it. Keeping them separate is also what
+ * makes the tier usable as a qualification signal.
+ *
+ * Wording is deliberately plain about what the customer still does themselves.
+ * A tier description that oversells is a refund conversation later.
+ */
+export const SCOPE_TIERS = [
+  {
+    value: "full_planning",
+    label: "Full planning",
+    blurb:
+      "We run it end to end: venue, vendors, budget, timeline, and the day itself.",
+  },
+  {
+    value: "partial_planning",
+    label: "Partial planning",
+    blurb:
+      "You have some of it handled. We take the parts you don't want to own.",
+  },
+  {
+    value: "day_of_coordination",
+    label: "Day-of coordination",
+    blurb:
+      "You plan it. We take over a few weeks out and run the day so you don't have to.",
+  },
+] as const;
+
+export type ScopeTierValue = (typeof SCOPE_TIERS)[number]["value"];
+export const SCOPE_TIER_VALUES = SCOPE_TIERS.map((t) => t.value);
+
+/**
+ * An add-on module. These sit on top of the scope tier - the tier says how much
+ * of the event we run, these say which specific pieces are in play.
+ */
 export type ServiceOption = {
   value: string;
   label: string;
@@ -79,21 +118,6 @@ export type ServiceOption = {
 };
 
 export const SERVICE_OPTIONS: ServiceOption[] = [
-  {
-    value: "full_planning",
-    label: "Full planning, start to finish",
-    appliesTo: ["wedding", "corporate", "private"],
-  },
-  {
-    value: "partial_planning",
-    label: "Partial planning",
-    appliesTo: ["wedding", "corporate", "private"],
-  },
-  {
-    value: "day_of_coordination",
-    label: "Day-of coordination",
-    appliesTo: ["wedding", "private", "coordination"],
-  },
   {
     value: "venue_sourcing",
     label: "Venue sourcing and site visits",
@@ -117,6 +141,11 @@ export const SERVICE_OPTIONS: ServiceOption[] = [
   {
     value: "rentals_decor",
     label: "Rentals and decor",
+    appliesTo: ["wedding", "corporate", "private", "coordination"],
+  },
+  {
+    value: "photography_sourcing",
+    label: "Photography and video sourcing",
     appliesTo: ["wedding", "corporate", "private", "coordination"],
   },
   {

@@ -73,7 +73,7 @@ export default function HomePage() {
               so you make decisions instead of chasing quotes.
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <ButtonLink href="/start" size="lg">
+              <ButtonLink href="/plan" size="lg">
                 Start planning
               </ButtonLink>
               <p className="text-small text-ink-muted">
@@ -198,13 +198,13 @@ export default function HomePage() {
             Three minutes now saves you a month of chasing quotes. No obligation,
             and no sales sequence afterwards.
           </p>
-          <ButtonLink href="/start" size="lg">
+          <ButtonLink href="/plan" size="lg">
             Start planning
           </ButtonLink>
           <p className="text-small text-ink-muted">
             Prefer to look around first?{" "}
             <Link
-              href="/start"
+              href="/plan"
               className="underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
             >
               The form tells you what we&apos;d need to know anyway.

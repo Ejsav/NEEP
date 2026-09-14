@@ -1,8 +1,12 @@
 import { z } from "zod";
+// Re-exported below so existing server-side imports keep working. The module
+// itself has no dependencies, which is the entire point - see its header.
+import { DRAFT_FIELDS, FINAL_STEP, PLANNER_STEPS } from "@/lib/domain/planner-steps";
 import {
   BUDGET_BAND_VALUES,
   CONTACT_PREFERENCE_VALUES,
   EVENT_TYPE_VALUES,
+  SCOPE_TIER_VALUES,
   SERVICE_VALUES,
   VENUE_STATUS_VALUES,
 } from "@/lib/domain/inquiry-options";
@@ -116,7 +120,16 @@ const guestCountSchema = z.preprocess(
     .optional(),
 );
 
-export const inquiryInputSchema = z
+/**
+ * The field rules, before any cross-field checks.
+ *
+ * Split out because Zod v4 refuses `.pick()` on a schema that carries
+ * refinements - a runtime error, not a type error, so it only surfaces when the
+ * code runs. Keeping the plain object separate lets the draft schema pick from
+ * exactly the same field definitions the submit schema uses, which is the point:
+ * a rule can never drift between "valid at step 3" and "valid on submit".
+ */
+const inquiryObjectSchema = z
   .object({
     eventType: z.enum(EVENT_TYPE_VALUES as [string, ...string[]], {
       message: "Choose the kind of event you're planning.",
@@ -154,6 +167,7 @@ export const inquiryInputSchema = z
     venueName: optionalText(160),
     eventTown: optionalText(80),
     budgetBand: z.enum(BUDGET_BAND_VALUES as [string, ...string[]]).optional(),
+    scopeTier: z.enum(SCOPE_TIER_VALUES as [string, ...string[]]).optional(),
 
     servicesNeeded: z
       .array(z.enum(SERVICE_VALUES as [string, ...string[]]))
@@ -161,7 +175,13 @@ export const inquiryInputSchema = z
       .default([]),
 
     message: optionalText(4000),
-  })
+  });
+
+/**
+ * Authoritative submit schema: the field rules plus the cross-field checks that
+ * only make sense for a finished submission.
+ */
+export const inquiryInputSchema = inquiryObjectSchema
   .superRefine((data, ctx) => {
     if (
       data.guestCountMin !== undefined &&
@@ -196,6 +216,36 @@ export const inquiryInputSchema = z
   });
 
 export type InquiryInput = z.infer<typeof inquiryInputSchema>;
+
+export { DRAFT_FIELDS, FINAL_STEP, PLANNER_STEPS };
+export type { DraftField, PlannerStep } from "@/lib/domain/planner-steps";
+
+/**
+ * The draft shape: the whole-form rules, restricted to non-PII fields and made
+ * entirely optional, because a half-answered step is still worth persisting.
+ *
+ * Each field keeps its own preprocessing and bounds from the shared object - a
+ * draft still refuses a wedding in 1998. What it does not carry is the
+ * cross-field `superRefine`, which is correct: "give a date or tick flexible"
+ * is a rule about a finished submission, not about a draft in progress.
+ */
+export const draftInputSchema = inquiryObjectSchema
+  .pick({
+    eventType: true,
+    eventDate: true,
+    eventDateFlexible: true,
+    guestCountMin: true,
+    guestCountMax: true,
+    eventTown: true,
+    venueStatus: true,
+    venueName: true,
+    scopeTier: true,
+    budgetBand: true,
+    servicesNeeded: true,
+  })
+  .partial();
+
+export type DraftInput = z.infer<typeof draftInputSchema>;
 
 /** Field-keyed error map, shaped for direct rendering next to inputs. */
 export type FieldErrors = Record<string, string[]>;

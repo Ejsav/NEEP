@@ -33,10 +33,25 @@ export type FormTokenVerdict =
   | { ok: true }
   | { ok: false; reason: "malformed" | "bad_signature" | "too_fast" | "expired" };
 
+export type VerifyOptions = {
+  /**
+   * Overrides the "too fast to be human" floor.
+   *
+   * The default exists because a completed form submitted in under 2.5s was
+   * filled by a script. That reasoning does not transfer to a planner step: a
+   * person who already knows they are planning a wedding can legitimately pick
+   * it and press Next in well under a second, and rejecting them would break
+   * the flow on its very first interaction. Draft saves therefore pass 0 and
+   * rely on the rate limiter instead. The final submit keeps the full check.
+   */
+  minAgeMs?: number;
+};
+
 export function verifyFormToken(
   token: string | undefined | null,
   scope: string,
   now: Date = new Date(),
+  options: VerifyOptions = {},
 ): FormTokenVerdict {
   if (typeof token !== "string" || token.length === 0) {
     return { ok: false, reason: "malformed" };
@@ -54,9 +69,10 @@ export function verifyFormToken(
   const expected = hmac(`${tokenScope}.${issuedAtRaw}.${nonce}`);
   if (!safeEqual(signature, expected)) return { ok: false, reason: "bad_signature" };
 
+  const minAge = options.minAgeMs ?? MIN_AGE_MS;
   const age = now.getTime() - issuedAt;
   // A negative age means clock skew, not an attack. Treat it as valid.
-  if (age >= 0 && age < MIN_AGE_MS) return { ok: false, reason: "too_fast" };
+  if (age >= 0 && age < minAge) return { ok: false, reason: "too_fast" };
   if (age > MAX_AGE_MS) return { ok: false, reason: "expired" };
 
   return { ok: true };

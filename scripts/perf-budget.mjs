@@ -33,7 +33,7 @@ const KB = 1024;
  */
 const BUDGETS = [
   { path: "/", addedJs: 10, firstLoad: 145, total: 800 },
-  { path: "/start", addedJs: 25, firstLoad: 160, total: 500 },
+  { path: "/plan", addedJs: 25, firstLoad: 160, total: 500 },
 ];
 
 async function measure(browser, route) {

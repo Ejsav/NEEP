@@ -284,6 +284,43 @@
       transform var(--duration-base) var(--ease-out-quiet);
   }
 
+  /*
+   * Planner progressive enhancement.
+   *
+   * The server renders every step visible, with both a final submit and the
+   * wizard navigation in the markup. Which of the two is real depends entirely
+   * on whether JavaScript ran - and that is decided here, in CSS, rather than
+   * by rendering different HTML, so the no-JS path is the DEFAULT rather than a
+   * fallback that has to be remembered.
+   *
+   * Not enhanced: all five steps visible, one submit at the end, no wizard nav.
+   * Enhanced: one step at a time, wizard nav, and the standalone submit removed
+   * because the nav carries its own on the last step.
+   */
+  /*
+   * Display for these three is owned here and nowhere else. They deliberately
+   * carry no `flex` utility class: Tailwind's utilities layer outranks this
+   * components layer, so a `flex` on the element would silently beat
+   * `display: none` and the wizard navigation would show up on the no-JS path.
+   */
+  .planner .planner-nav,
+  .planner .planner-progress {
+    display: none;
+  }
+
+  .planner .planner-submit {
+    display: flex;
+  }
+
+  .planner[data-enhanced="true"] .planner-nav,
+  .planner[data-enhanced="true"] .planner-progress {
+    display: flex;
+  }
+
+  .planner[data-enhanced="true"] .planner-submit {
+    display: none;
+  }
+
   /* Skip link: present in the DOM, revealed on focus. */
   .skip-link {
     position: absolute;

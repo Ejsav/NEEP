@@ -65,6 +65,36 @@ export const notificationStatusEnum = pgEnum("notification_status", [
 
 export const adminRoleEnum = pgEnum("admin_role", ["owner", "staff"]);
 
+/**
+ * How much of the event we are asked to run. This is the deal-size lever, and
+ * it is a separate question from which individual services are wanted - a
+ * customer can want full planning with no transportation, or day-of
+ * coordination with every add-on.
+ */
+export const scopeTierEnum = pgEnum("scope_tier", [
+  "full_planning",
+  "partial_planning",
+  "day_of_coordination",
+]);
+
+/**
+ * Draft lifecycle. Deliberately NOT folded into inquiry_status: a draft is not
+ * a lead, and admin queries that count real leads must never accidentally
+ * include an abandoned funnel.
+ */
+export const draftStatusEnum = pgEnum("draft_status", [
+  "active",
+  "converted",
+  "abandoned",
+]);
+
+export const funnelActionEnum = pgEnum("funnel_action", [
+  "enter",
+  "exit",
+  "submit",
+  "error",
+]);
+
 /* -------------------------------------------------------------- inquiries */
 
 export const inquiries = pgTable(
@@ -97,7 +127,22 @@ export const inquiries = pgTable(
     budgetBand: text("budget_band"),
     /** Selected service keys. Validated server-side against a known list. */
     servicesNeeded: jsonb("services_needed").$type<string[]>().notNull().default([]),
+    /**
+     * How much of the event we run. A separate question from which modules are
+     * wanted: a customer can want full planning with no transportation, or
+     * day-of coordination with every module. This is the deal-size lever.
+     */
+    scopeTier: scopeTierEnum("scope_tier"),
     message: text("message"),
+
+    /**
+     * The draft this inquiry was completed from, when there was one. Uniquely
+     * indexed, so "exactly one inquiry per draft" is a database guarantee
+     * rather than a convention the application is trusted to keep. Null is
+     * normal: a submission with no draft cookie (cleared, or the no-JS path)
+     * still saves the lead, it just loses the funnel linkage.
+     */
+    draftId: uuid("draft_id"),
 
     submittedAt: timestamp("submitted_at", { withTimezone: true })
       .notNull()
@@ -115,6 +160,7 @@ export const inquiries = pgTable(
   },
   (t) => [
     uniqueIndex("inquiries_reference_key").on(t.reference),
+    uniqueIndex("inquiries_draft_id_key").on(t.draftId),
     index("inquiries_submitted_at_idx").on(t.submittedAt),
     index("inquiries_status_idx").on(t.status),
     index("inquiries_response_due_idx").on(t.responseDueAt),
@@ -275,6 +321,93 @@ export const auditLog = pgTable(
   ],
 );
 
+/* ----------------------------------------------------------------- drafts */
+
+/**
+ * Partial planner responses, written on every step transition.
+ *
+ * CARRIES NO PII, BY DESIGN. Name, email and phone are asked for on the last
+ * step and written only when the customer actually submits. Storing contact
+ * details somebody typed but never sent is a consent problem we decline to
+ * create, and it keeps the privacy policy short and true. An abandoned funnel
+ * is aggregate intelligence about where the flow loses people - which is what
+ * the drop-off report needs - not a person to go and contact.
+ *
+ * Identified by a random token held in an httpOnly cookie; only its HMAC is
+ * stored here, the same discipline applied to session tokens and IP addresses.
+ */
+export const inquiryDrafts = pgTable(
+  "inquiry_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** HMAC of the draft cookie token. The raw token is never stored. */
+    tokenHash: text("token_hash").notNull(),
+    status: draftStatusEnum("status").notNull().default("active"),
+
+    eventType: eventTypeEnum("event_type"),
+    eventDate: date("event_date"),
+    eventDateFlexible: boolean("event_date_flexible").notNull().default(false),
+    guestCountMin: integer("guest_count_min"),
+    guestCountMax: integer("guest_count_max"),
+    venueStatus: venueStatusEnum("venue_status"),
+    venueName: text("venue_name"),
+    eventTown: text("event_town"),
+    scopeTier: scopeTierEnum("scope_tier"),
+    budgetBand: text("budget_band"),
+    servicesNeeded: jsonb("services_needed").$type<string[]>().notNull().default([]),
+
+    /** Highest step reached. The single most useful number on this table. */
+    furthestStep: integer("furthest_step").notNull().default(1),
+
+    convertedInquiryId: uuid("converted_inquiry_id").references(
+      () => inquiries.id,
+      { onDelete: "set null" },
+    ),
+
+    ipHash: text("ip_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("inquiry_drafts_token_hash_key").on(t.tokenHash),
+    index("inquiry_drafts_status_idx").on(t.status),
+    index("inquiry_drafts_updated_at_idx").on(t.updatedAt),
+  ],
+);
+
+/* ---------------------------------------------------------- funnel events */
+
+/**
+ * Step-level telemetry. Drop-off by step is the metric that matters most for
+ * the planner, and it is one GROUP BY away from here.
+ *
+ * Keyed to the draft, never to a person: no PII, and the IP is a keyed HMAC.
+ */
+export const funnelEvents = pgTable(
+  "funnel_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    draftId: uuid("draft_id")
+      .notNull()
+      .references(() => inquiryDrafts.id, { onDelete: "cascade" }),
+    step: integer("step").notNull(),
+    action: funnelActionEnum("action").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ipHash: text("ip_hash"),
+  },
+  (t) => [
+    index("funnel_events_draft_idx").on(t.draftId),
+    index("funnel_events_step_idx").on(t.step, t.action),
+    index("funnel_events_occurred_idx").on(t.occurredAt),
+  ],
+);
+
 /* ------------------------------------------------------------ rate limits */
 
 /**
@@ -300,3 +433,6 @@ export type InquiryAttribution = typeof inquiryAttribution.$inferSelect;
 export type NewInquiryAttribution = typeof inquiryAttribution.$inferInsert;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type NotificationRecord = typeof notifications.$inferSelect;
+export type InquiryDraft = typeof inquiryDrafts.$inferSelect;
+export type NewInquiryDraft = typeof inquiryDrafts.$inferInsert;
+export type FunnelEvent = typeof funnelEvents.$inferSelect;

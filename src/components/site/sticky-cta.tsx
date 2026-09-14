@@ -16,7 +16,7 @@ import { siteConfig } from "@/lib/site-config";
  * indicator. Body padding is applied in the marketing layout so the bar never
  * covers the end of the page.
  */
-export function StickyCta({ href = "/start", label = "Start planning" }: {
+export function StickyCta({ href = "/plan", label = "Start planning" }: {
   href?: string;
   label?: string;
 }) {

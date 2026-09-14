@@ -34,6 +34,16 @@ export const RATE_LIMITS = {
   inquiryPerIp: { limit: 5, windowSeconds: 60 * 60 } as RateLimitRule,
   /** Public inquiry form, global. A blunt backstop against a distributed flood. */
   inquiryGlobal: { limit: 200, windowSeconds: 60 * 60 } as RateLimitRule,
+  /**
+   * Planner draft saves, per client IP. A completed five-step flow writes five
+   * times, so this has to be far looser than the submit limit or it would throttle
+   * the customers it exists to protect. 60/hour leaves room for restarts, a
+   * shared office IP and a changed mind, while still capping how cheaply a bot
+   * can manufacture draft rows.
+   */
+  draftPerIp: { limit: 60, windowSeconds: 60 * 60 } as RateLimitRule,
+  /** Planner draft saves, global backstop. */
+  draftGlobal: { limit: 2_000, windowSeconds: 60 * 60 } as RateLimitRule,
   /** Admin login attempts, per client IP. */
   loginPerIp: { limit: 10, windowSeconds: 15 * 60 } as RateLimitRule,
   /** Admin login attempts, per submitted account. */
