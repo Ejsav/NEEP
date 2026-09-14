@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { venueFieldSources, venues } from "@/lib/db/schema";
 import type { Venue, VenueFieldSource } from "@/lib/db/schema";
 import { assertPublishable } from "@/lib/venues/gate";
+import { hasDatabaseUrl } from "@/lib/env";
 
 /**
  * Venue reads.
@@ -36,6 +37,11 @@ async function withSources(rows: Venue[]): Promise<VenueWithSources[]> {
 
 /** Every venue that clears the gate, in name order. */
 export async function listPublishableVenues(): Promise<VenueWithSources[]> {
+  // No database configured is an ordinary state during a build, not a failure.
+  // Logging it as an error put a red line in every deploy log and sent someone
+  // hunting for a broken build that had in fact succeeded.
+  if (!hasDatabaseUrl()) return [];
+
   try {
     const rows = await db.select().from(venues).orderBy(asc(venues.name));
     const paired = await withSources(rows);
@@ -54,6 +60,8 @@ export async function listPublishableVenues(): Promise<VenueWithSources[]> {
 export async function getPublishableVenue(
   slug: string,
 ): Promise<VenueWithSources | null> {
+  if (!hasDatabaseUrl()) return null;
+
   try {
     const [row] = await db.select().from(venues).where(eq(venues.slug, slug)).limit(1);
     if (!row) return null;
