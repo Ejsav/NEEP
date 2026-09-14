@@ -23,7 +23,8 @@
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build:no-db",
     "perf": "node scripts/perf-budget.mjs",
     "contract": "node scripts/page-contract.mjs",
-    "verify:e2e": "psql \"$DATABASE_URL\" -q -c 'delete from rate_limit_buckets' && node scripts/verify-money-path.mjs && node scripts/page-contract.mjs && node scripts/perf-budget.mjs"
+    "verify:e2e": "psql \"$DATABASE_URL\" -q -c 'delete from rate_limit_buckets' && node scripts/verify-money-path.mjs && node scripts/page-contract.mjs && node scripts/link-graph.mjs && node scripts/perf-budget.mjs",
+    "links": "node scripts/link-graph.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

@@ -236,6 +236,23 @@ export default async function VerticalPage({
                   Start planning
                 </ButtonLink>
               </div>
+              <p className="text-small text-ink-muted">
+                Want the detail first?{" "}
+                <Link
+                  href="/how-we-work"
+                  className="text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                >
+                  What happens after you send it
+                </Link>
+                , and{" "}
+                <Link
+                  href="/pricing"
+                  className="text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                >
+                  what actually drives the cost
+                </Link>
+                .
+              </p>
             </div>
             {/*
               The other three pillars, as a ruled index rather than a sentence

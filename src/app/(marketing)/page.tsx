@@ -206,6 +206,16 @@ export default function HomePage() {
                 tell you when the answer is no. When there is real proof, it
                 will appear here — with names attached.
               </p>
+              <p className="text-body text-ink-muted">
+                <Link
+                  href="/about"
+                  className="text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                >
+                  The longer version
+                </Link>{" "}
+                says what the company is, how it is paid, and the two things it
+                will not do.
+              </p>
             </Reveal>
 
             <Reveal className="flex h-fit flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">

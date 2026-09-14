@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, describedBy, inputClasses } from "@/components/ui/field";
@@ -458,6 +459,20 @@ export function PlannerForm({
                 </label>
               ))}
             </div>
+            {/*
+              The budget question is where the objection surfaces, so it is where
+              the answer belongs. PLAN.md put this link here for that reason.
+            */}
+            <p className="text-micro text-ink-muted">
+              Not sure what an event like yours costs?{" "}
+              <Link
+                href="/pricing"
+                className="text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+              >
+                What actually drives the number
+              </Link>
+              , with no figures invented.
+            </p>
           </FieldGroup>
 
           <FieldGroup
