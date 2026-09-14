@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import { notificationRecipient, resendConfig, siteUrl } from "@/lib/env";
@@ -209,5 +209,97 @@ export async function notifyNewInquiry(inquiry: Inquiry): Promise<NotifyOutcome>
         .catch(() => undefined);
     }
     return { notificationId, status: "failed", detail };
+  }
+}
+
+/**
+ * Re-attempts a notification that did not go out.
+ *
+ * The subject and body were written to the row before the first attempt, so a
+ * retry sends exactly what the first attempt would have sent - it does not
+ * rebuild the message from an inquiry that may have been edited since, which
+ * would quietly change what an operator thinks they resent.
+ *
+ * `attempts` is incremented in SQL rather than read-then-written, so two
+ * operators clicking retry at the same moment produce two attempts rather than
+ * one lost count.
+ *
+ * Never throws, for the same reason nothing else in this module does: a
+ * notification is a convenience and the lead is the asset.
+ */
+export async function retryNotification(
+  notificationId: string,
+): Promise<NotifyOutcome> {
+  const config = resendConfig();
+
+  const [row] = await db
+    .select({
+      id: notifications.id,
+      recipient: notifications.recipient,
+      subject: notifications.subject,
+      bodyText: notifications.bodyText,
+      status: notifications.status,
+    })
+    .from(notifications)
+    .where(eq(notifications.id, notificationId))
+    .limit(1);
+
+  if (!row) {
+    return { notificationId: null, status: "not_recorded", detail: "No such notification." };
+  }
+  if (row.status === "sent") {
+    // Already delivered. Sending again would be a duplicate in someone's inbox
+    // presented to the operator as a fix.
+    return { notificationId: row.id, status: "sent", detail: "Already sent." };
+  }
+
+  if (!config) {
+    await db
+      .update(notifications)
+      .set({
+        status: "no_provider",
+        attempts: sql`${notifications.attempts} + 1`,
+        lastError: "No transactional email provider is configured.",
+      })
+      .where(eq(notifications.id, row.id))
+      .catch(() => undefined);
+    return {
+      notificationId: row.id,
+      status: "no_provider",
+      detail: "No transactional email provider is configured.",
+    };
+  }
+
+  try {
+    const result = await deliverViaResend(
+      config,
+      row.recipient,
+      row.subject,
+      row.bodyText,
+    );
+    await db
+      .update(notifications)
+      .set({
+        status: "sent",
+        driver: "resend",
+        attempts: sql`${notifications.attempts} + 1`,
+        sentAt: new Date(),
+        providerMessageId: result.id,
+        lastError: null,
+      })
+      .where(eq(notifications.id, row.id));
+    return { notificationId: row.id, status: "sent" };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    await db
+      .update(notifications)
+      .set({
+        status: "failed",
+        attempts: sql`${notifications.attempts} + 1`,
+        lastError: detail.slice(0, 1000),
+      })
+      .where(eq(notifications.id, row.id))
+      .catch(() => undefined);
+    return { notificationId: row.id, status: "failed", detail };
   }
 }

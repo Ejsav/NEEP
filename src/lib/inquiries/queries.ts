@@ -1,5 +1,19 @@
 import "server-only";
-import { and, count, desc, eq, gte, ilike, isNull, lt, notInArray, or, type SQL } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  lt,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   inquiries,
@@ -155,7 +169,13 @@ export async function countInquiries(
 export async function slaSummary(
   days = 30,
   now: Date = new Date(),
-): Promise<{ received: number; answered: number; missed: number }> {
+): Promise<{
+  received: number;
+  answered: number;
+  missed: number;
+  /** Median time to first reply, in seconds. Null when nothing was answered. */
+  medianResponseSeconds: number | null;
+}> {
   const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
   const scope = and(
     gte(inquiries.submittedAt, since),
@@ -194,10 +214,30 @@ export async function slaSummary(
       ),
     );
 
+  /*
+   * Median rather than mean: one inquiry answered a week late drags an average
+   * far enough to make a healthy queue look broken, and the number an operator
+   * needs is "what does a typical reply take", not "what does the worst one do
+   * to the arithmetic".
+   */
+  const [median] = await db
+    .select({
+      seconds: sql<string | null>`percentile_cont(0.5) within group (order by extract(epoch from (${inquiries.firstResponseAt} - ${inquiries.submittedAt})))`,
+    })
+    .from(inquiries)
+    .where(and(scope, isNotNull(inquiries.firstResponseAt)));
+
+  const medianSeconds =
+    median?.seconds === null || median?.seconds === undefined
+      ? null
+      : Number(median.seconds);
+
   return {
     received: received?.value ?? 0,
     answered: answeredInTime?.value ?? 0,
     missed: missed?.value ?? 0,
+    medianResponseSeconds:
+      medianSeconds === null || Number.isNaN(medianSeconds) ? null : medianSeconds,
   };
 }
 

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import {
   addNoteAction,
   markRespondedAction,
+  retryNotificationAction,
   updateStatusAction,
 } from "@/app/admin/actions";
 
@@ -238,6 +239,28 @@ export default async function InquiryDetailPage({
                       <p className="mt-1 text-micro text-critical">
                         {notification.lastError}
                       </p>
+                    ) : null}
+                    {notification.attempts > 1 ? (
+                      <p className="mt-1 text-micro text-ink-subtle">
+                        {notification.attempts} attempts.
+                      </p>
+                    ) : null}
+                    {/*
+                      Retry is offered for anything that did not go out. It
+                      resends the stored message rather than rebuilding it, so
+                      what arrives is what the first attempt would have sent.
+                    */}
+                    {notification.status !== "sent" ? (
+                      <form action={retryNotificationAction} className="mt-2">
+                        <input
+                          type="hidden"
+                          name="notificationId"
+                          value={notification.id}
+                        />
+                        <Button type="submit" variant="secondary">
+                          Try sending again
+                        </Button>
+                      </form>
                     ) : null}
                   </li>
                 ))}

@@ -698,3 +698,119 @@ outranks atmosphere every time. Sooner than that: if anyone outside the company
 reads the lectern image as a client claim, or the Mediterranean image as a
 service area, replace those two first - they are the two this decision
 knowingly accepted.
+
+---
+
+## D-020 — Tailwind v4 `@theme` cannot live inside a media query
+
+**Status:** VERIFIED FACT, and a defect that shipped.
+
+`src/app/globals.css` defined the dark palette as a `@theme` block nested inside
+`@media (prefers-color-scheme: dark)`. That reads correctly and is wrong.
+Tailwind v4 resolves `@theme` at build time and flattens every declaration to the
+top level, discarding the surrounding at-rule. The compiled stylesheet contained
+**no `prefers-color-scheme` rule at all**, and `--color-paper` resolved to the
+dark value unconditionally.
+
+Every visitor, on every page, since the tokens were written, saw the dark
+palette — including the one the design brief explicitly rejects as "nightclub
+dark chrome" (D-016).
+
+**The rule.** `@theme` is top-level only. Anything conditional redefines the same
+custom properties in a plain `:root` rule inside a real media query, which works
+because Tailwind v4 utilities compile to `var(--color-*)` rather than to literal
+values. `color-scheme` is set alongside so form controls, scrollbars and the
+canvas behind the page follow the same switch.
+
+**Why it went unnoticed.** Every check in the build asserted the *source*. Source
+is the one version of a stylesheet that cannot be wrong in this way. Two
+page-contract checks now assert the computed result instead: every indexable
+route must paint `rgb(250, 247, 242)` under a light scheme, and the homepage must
+paint `rgb(22, 19, 15)` under a dark one. Text contrast is computed in both.
+
+**What that immediately caught.** `--color-ink-subtle` at `#78716c` was 4.49:1 on
+paper and 4.11:1 on paper-sunk — under WCAG AA on both, on every eyebrow,
+breadcrumb, caption and fact label on the site. Now `#6f6863`. The dark accent
+was `#d98a92`, which on a near-black ground reads as blush pink and is the exact
+template-wedding register D-016 rejects; now `#b8303f`, which keeps the claret
+and clears both the 4.5:1 text requirement and 3:1 against the ground.
+
+**Revisit if:** Tailwind changes how `@theme` resolves. The computed-value checks
+stay regardless — they are cheaper than the class of bug they catch.
+
+---
+
+## D-021 — The operator surface shows two different facts, never one
+
+**Status:** RECOMMENDATION, implemented.
+
+The inquiry queue originally showed SLA state in a column headed "Status", which
+meant a won deal and a spam submission looked identical, and a spam row
+displayed a response deadline it was never going to have.
+
+These are two independent facts and both have to be visible: **where the lead is
+in the pipeline** (new, in progress, quoted, won, lost, spam) and **whether the
+published response commitment is being kept** (overdue, answered in Xh, due at
+T). Collapsing them loses information the operator needs to act.
+
+The same principle governs the SLA summary above the table. It reports received,
+answered inside the window, missed, and the **median** time to first reply.
+Median rather than mean: one inquiry answered a week late drags an average far
+enough to make a healthy queue look broken, and the number an operator needs is
+what a typical reply takes.
+
+"Missed" counts an inquiry answered after its deadline **or** still unanswered
+with the deadline past. An inquiry inside its window is neither kept nor missed
+yet, and counting it either way would be a lie in one direction.
+
+---
+
+## D-022 — Abandoned funnels are aggregate intelligence, never a contact list
+
+**Status:** RECOMMENDATION, implemented.
+
+`inquiry_drafts` has been capturing partial planner responses since the planner
+shipped, and `/admin/funnel` now reads them. The rule that makes this defensible
+is the one in the module header: **a draft carries no PII, ever.** Name, email
+and phone are asked for on the last step and written only by a real submission.
+
+That has a design consequence the funnel page honours: it shows aggregates only
+and never an individual draft. There is nothing about one worth opening, and
+building a browser for them would be the first step toward the contact capture
+this system declines to do — someone who typed an email address and then decided
+not to send it has told us something, and it is *no*.
+
+What the page does show is where people stop, which is the only way to test
+PLAN.md's riskiest assumption: that five steps raise qualified submissions
+rather than suppressing them. Step count is a constant in
+`lib/domain/planner-steps.ts`, so four against five is an edit rather than a
+rebuild — but only once there is data to justify it.
+
+Abandonment is derived at read time (active, and untouched for 30 minutes)
+rather than written by a scheduler. No cron to fall behind, and one definition.
+
+---
+
+## D-023 — A footer link is not an internal link
+
+**Status:** RECOMMENDATION, implemented as a build check.
+
+PLAN.md promised an orphan check in P0 and it was never built, so the failure it
+existed to catch ran live: `/about` had twelve inbound links and not one of them
+came from page content. On a site whose entire trust position is "we are new and
+here is exactly how new", nothing in the site's own writing pointed at the page
+that says so.
+
+`scripts/link-graph.mjs` applies two thresholds:
+
+- **Reachable** — at least one inbound link from another indexed page. Zero is a
+  hard failure; the page is an island that only the sitemap knows about.
+- **Contextual** — at least one inbound link from outside `<header>` and
+  `<footer>`. Site chrome links every page it lists from every page there is, so
+  a footer link proves the page exists, not that it belongs to the site's
+  argument.
+
+`/privacy`, `/terms` and `/accessibility` are named in the script as legitimately
+chrome-only, with the reason inline. An exception that has to be written down
+next to its justification is an exception somebody will reconsider; a silent one
+is not.

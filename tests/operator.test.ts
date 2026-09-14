@@ -165,6 +165,79 @@ describe.runIf(hasDb)("SLA summary", () => {
     expect(summary.answered).toBeGreaterThanOrEqual(1);
     expect(summary.missed).toBeGreaterThanOrEqual(2);
   });
+
+  it("reports a median response time rather than a mean", async () => {
+    const now = new Date();
+    const submittedAt = new Date(now.getTime() - 10 * 60 * 60 * 1000);
+    const responseDueAt = new Date(submittedAt.getTime() + 24 * 60 * 60 * 1000);
+    const after = (hours: number) =>
+      new Date(submittedAt.getTime() + hours * 60 * 60 * 1000);
+
+    // 1h, 2h and 100h. The mean is 34 hours; the median is 2. A single very
+    // late reply must not make a healthy queue look broken.
+    await seedInquiry({ submittedAt, responseDueAt, firstResponseAt: after(1) });
+    await seedInquiry({ submittedAt, responseDueAt, firstResponseAt: after(2) });
+    await seedInquiry({ submittedAt, responseDueAt, firstResponseAt: after(100) });
+
+    const summary = await queries.slaSummary(30, now);
+    expect(summary.medianResponseSeconds).not.toBeNull();
+    expect(summary.medianResponseSeconds! / 3600).toBeCloseTo(2, 1);
+  });
+
+  it("has no median to report when nothing has been answered", async () => {
+    await seedInquiry();
+    const summary = await queries.slaSummary(30, new Date());
+    expect(summary.medianResponseSeconds).toBeNull();
+  });
+});
+
+describe.runIf(hasDb)("queue at volume", () => {
+  it("pages to the end of a thousand rows, on an indexed ordering column", async () => {
+    const base = Date.now();
+    const rows = Array.from({ length: 1000 }, (_, i) => {
+      const submittedAt = new Date(base - i * 60_000);
+      return {
+        reference: `NEEP-V${i.toString().padStart(5, "0")}`,
+        eventType: "wedding" as const,
+        firstName: "Volume",
+        lastName: "Row",
+        email: `${EMAIL_PREFIX}-volume-${i}@example.com`,
+        contactPreference: "email" as const,
+        submittedAt,
+        responseDueAt: new Date(submittedAt.getTime() + 24 * 60 * 60 * 1000),
+      };
+    });
+    await db.insert(schema.inquiries).values(rows);
+
+    const page = await queries.listInquiries({ limit: 50, offset: 950 });
+    expect(page).toHaveLength(50);
+    // Newest first, and the page boundary lands where it should.
+    expect(page[0].firstName).toBe("Volume");
+    expect(
+      page.every((row, i) => i === 0 || row.submittedAt <= page[i - 1].submittedAt),
+    ).toBe(true);
+
+    /*
+     * Assert the INDEX EXISTS, not the plan that was chosen.
+     *
+     * The first version of this test read EXPLAIN and required an index scan.
+     * It failed, and the database was right: at a thousand rows the whole table
+     * is 32 pages, so a sequential scan plus a sort genuinely is cheaper and
+     * Postgres correctly picks it. Asserting a plan asserts the size of the
+     * fixture rather than the health of the schema.
+     *
+     * What protects the admin at ten thousand rows is that the ordering column
+     * is indexed at all - then the planner flips to it on its own, when it
+     * pays. That is the durable fact, so that is what is checked.
+     */
+    const indexes = await db.execute(
+      sql`select indexdef from pg_indexes where tablename = 'inquiries'`,
+    );
+    const definitions = JSON.stringify(indexes).toLowerCase();
+    expect(definitions).toContain("(submitted_at)");
+    expect(definitions).toContain("(status)");
+    expect(definitions).toContain("(response_due_at)");
+  });
 });
 
 describe.runIf(hasDb)("funnel", () => {

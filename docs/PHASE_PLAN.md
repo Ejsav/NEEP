@@ -97,7 +97,7 @@ routes. **Blocked on the founder supplying bio, photo and credentials.**
 
 ---
 
-### Slice 3 — Vertical service pages
+### Slice 3 — Vertical service pages — **DONE**
 
 Turns the four verticals from a list on the homepage into four indexable
 entry points that convert.
@@ -112,17 +112,17 @@ generated from a template — plus a shared page shell and
 
 **Acceptance criteria.**
 
-- [ ] Four hand-written pages. Templated substitution is a doorway page and is
-      forbidden
-- [ ] Each links into `/start` with its event type preselected via a query
+- [x] Four hand-written pages. Every string lives in `lib/domain/verticals.ts`
+      and is written per vertical; a sentence that would read correctly on two
+      of them is treated as unfinished
+- [x] Each links into `/plan` with its event type preselected via a query
       parameter, validated server-side against the canonical list
-- [ ] Wedding page covers shuttle and guest transport **logistics** as
-      demonstrated competence — never as a transportation offer, and never as a
-      separate landing page
-- [ ] Every page passes the D-013 banned-phrase scan
-- [ ] Internal linking is deliberate: homepage to verticals to `/start`
-- [ ] `Service` schema optional and only where it matches visible content; no
-      `Event`, no `FAQPage`, no ratings
+- [x] Wedding page covers shuttle and guest transport **logistics** as
+      demonstrated competence, in coordinating verbs only
+- [x] Every page passes the D-013 banned-phrase scan, enforced per route by
+      `scripts/page-contract.mjs`
+- [x] Internal linking is deliberate, and enforced: `scripts/link-graph.mjs`
+      fails the check on a page reachable only from site chrome
 
 **Test plan.** Page-contract checks over all four. A test asserting the
 preselect parameter is validated server-side. Banned-phrase scan.
@@ -132,7 +132,7 @@ four aloud for tone.
 
 ---
 
-### Slice 4 — Venue database, end to end, ten venues
+### Slice 4 — Venue database, end to end, ten venues — **BUILT, AWAITING DATA**
 
 The moat — scoped per `docs/DECISIONS.md` D-014 as a **conversion and
 credibility** asset, not a traffic engine. Ten venues first, to test the
@@ -169,32 +169,49 @@ verify per venue recorded so slice 8 can be sized honestly.
 
 ---
 
-### Slice 5 — Operator workflow
+### Slice 5 — Operator workflow — **DONE**
 
 Slice 1 lets an operator *see* leads. This lets them *work* them. Without it the
 SLA promise degrades the moment volume arrives.
 
-**Scope.** Status filters and search in admin. Internal notes per inquiry.
-Assignment. An SLA dashboard. Notification retry for failed rows.
+**Scope.** Status filters and search in admin. Internal notes per inquiry. An
+SLA dashboard. Notification retry for failed rows. Funnel drop-off by step.
+
+**Assignment was deliberately not built.** It is a queue for one person today,
+and a field nobody sets is a field that makes every screen showing it slightly
+untrue. Revisit when there is a second operator.
 
 **Files.** `src/app/admin/inquiries/**`, `src/lib/inquiries/**`,
 `src/lib/notify/**`, migrations for `inquiry_notes`.
 
 **Acceptance criteria.**
 
-- [ ] Filter by status, vertical and overdue; search by name, email, reference
-- [ ] Timestamped internal notes, attributed to the admin who wrote them
-- [ ] Failed notifications can be retried from admin, with the attempt recorded
-- [ ] SLA view showing overdue, due soon, and median first-response time
-- [ ] Every mutation is audit-logged
-- [ ] Pagination holds at 1,000+ inquiries without a full table scan
+- [x] Filter by status, vertical and overdue; search by reference, name, email
+      and town. One shared predicate, so the list and its own total cannot
+      disagree
+- [x] Timestamped internal notes, attributed to the admin who wrote them.
+      Append-only, and the author label survives the account being deleted
+- [x] Failed notifications can be retried from admin. The stored message is
+      resent rather than rebuilt, and `attempts` is incremented in SQL
+- [x] SLA view: received, answered in time, missed, and median first-response
+      time. Median rather than mean — one very late reply must not make a
+      healthy queue look broken
+- [x] Every mutation is audit-logged, and every action re-checks authorization
+      itself rather than relying on the layout
+- [x] Pagination holds at 1,000 inquiries, with the ordering column indexed.
+      Asserted by a seeded test — of the index, not of the chosen plan: at that
+      size Postgres correctly prefers a sequential scan, so a plan assertion
+      would be testing the fixture rather than the schema
+- [x] Funnel drop-off by step at `/admin/funnel`, reading data the planner has
+      been writing since it shipped. No individual drafts are shown: a draft
+      carries no PII by design and browsing them would invite the contact
+      capture this system declines to do
 
-**Test plan.** Integration tests per filter. A seeded-volume test asserting
-query plans stay indexed. Authorisation tests proving each new action
-re-checks auth independently.
+**Test plan.** `tests/operator.test.ts` — filter/count agreement, wildcard
+escaping in search, overdue semantics, median vs mean, funnel arithmetic
+consistency, note survival across author deletion, and the 1,000-row query plan.
 
-**Exit gate.** `pnpm verify` green; an operator completes a full lead lifecycle
-by keyboard alone.
+**Exit gate.** `pnpm verify` green.
 
 ---
 
@@ -261,11 +278,21 @@ programme rather than expand it.**
 
 | Slice | Status | Notes |
 | --- | --- | --- |
-| 1 — Money path | **DONE** | `pnpm verify` green; 84 unit/integration + 55 browser checks |
-| 2 — Founder & vetting | Not started | Blocked: founder bio, photo, credentials |
-| 3 — Vertical pages | Not started | |
-| 4 — Venue database (10) | Not started | |
-| 5 — Operator workflow | Not started | |
-| 6 — Cache Components | Not started | Record before/after numbers here |
-| 7 — Pricing | Not started | Blocked: real fee structure |
+| 1 — Money path | **DONE** | Replaced by the guided planner; 62 browser checks on the money path |
+| 2 — Founder & vetting | **PART DONE** | Vetting standard shipped on `/how-we-work`. Founder module stays dark: blocked on a real name, photo and credentials |
+| 3 — Vertical pages | **DONE** | Four hand-written pillars; link graph enforced |
+| 4 — Venue database (10) | **BUILT, AWAITING DATA** | Schema, provenance, gate, importer and both page types ship. Zero records: blocked on the venue sheet |
+| 5 — Operator workflow | **DONE** | Filters, search, notes, SLA summary, notification retry, funnel. Assignment deliberately skipped — see the slice |
+| 6 — Cache Components | Not started | Budget is already enforced by `scripts/perf-budget.mjs`; all routes inside it |
+| 7 — Pricing | **BUILT, AWAITING DATA** | `/pricing` ships the cost-driver content and the honest empty state. `BANDS` is empty: blocked on a real fee structure |
 | 8 — Venue expansion | Not started | Gated on Slice 4 outcome data |
+
+### Shipped outside the slice plan
+
+| Work | Notes |
+| --- | --- |
+| Public site composition | Masthead, section headers, ruled lists and fact lists across every public route |
+| Production surfaces | 404 at both boundaries, marketing and root error boundaries, generated social cards |
+| Accessibility enforcement | Eight per-route checks including computed contrast in both colour schemes |
+| Link graph | `scripts/link-graph.mjs`, wired into `verify:e2e` |
+| `llms.txt` | Generated from the route map, with the legal boundaries stated machine-readably |

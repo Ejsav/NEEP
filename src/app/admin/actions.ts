@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { inquiries, inquiryNotes } from "@/lib/db/schema";
+import { inquiries, inquiryNotes, notifications } from "@/lib/db/schema";
 import { requireAdminOrNull } from "@/lib/auth/guard";
 import { logout, recordAudit } from "@/lib/auth/session";
 import { getRequestContext } from "@/lib/security/request-context";
+import { retryNotification } from "@/lib/notify";
 
 /**
  * Admin mutations.
@@ -171,4 +172,41 @@ export async function addNoteAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath(`/admin/inquiries/${id}`);
+}
+
+/**
+ * Re-attempts a notification that did not go out.
+ *
+ * The inquiry id is taken from the notification row rather than the form, so a
+ * forged pair cannot make one inquiry's page revalidate on another's retry -
+ * and more importantly, cannot be used to probe which ids exist.
+ */
+export async function retryNotificationAction(formData: FormData): Promise<void> {
+  const admin = await requireAdminOrNull();
+  if (!admin) redirect("/admin/login");
+
+  const notificationId = formData.get("notificationId");
+  if (typeof notificationId !== "string" || notificationId === "") return;
+
+  const [row] = await db
+    .select({ inquiryId: notifications.inquiryId })
+    .from(notifications)
+    .where(eq(notifications.id, notificationId))
+    .limit(1);
+  if (!row) return;
+
+  const context = await getRequestContext();
+  const outcome = await retryNotification(notificationId);
+
+  await recordAudit({
+    actorUserId: admin.user.id,
+    actorLabel: admin.user.email,
+    action: "notification.retried",
+    entityType: "notification",
+    entityId: notificationId,
+    ipHash: context.ipHash,
+    metadata: { result: outcome.status, detail: outcome.detail ?? null },
+  });
+
+  revalidatePath(`/admin/inquiries/${row.inquiryId}`);
 }

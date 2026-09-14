@@ -133,13 +133,21 @@ export default async function InquiriesPage({
             past - an inquiry inside its window is neither kept nor missed yet.
           */}
           {sla.received > 0 ? (
-            <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line text-center">
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line text-center sm:grid-cols-4">
               <Metric label="Received, 30 days" value={sla.received} />
               <Metric label="Answered in time" value={sla.answered} tone="positive" />
               <Metric
                 label="Missed"
                 value={sla.missed}
                 tone={sla.missed > 0 ? "critical" : "muted"}
+              />
+              <Metric
+                label="Typical reply"
+                display={
+                  sla.medianResponseSeconds === null
+                    ? "—"
+                    : formatDuration(sla.medianResponseSeconds)
+                }
               />
             </dl>
           ) : null}
@@ -444,10 +452,13 @@ function EmptyState({ filtered }: { filtered: boolean }) {
 function Metric({
   label,
   value,
+  display,
   tone = "muted",
 }: {
   label: string;
-  value: number;
+  value?: number;
+  /** Pre-formatted value, for metrics that are not a plain count. */
+  display?: string;
   tone?: "muted" | "positive" | "critical";
 }) {
   const colour =
@@ -460,10 +471,18 @@ function Metric({
     <div className="flex flex-col gap-0.5 bg-paper-raised px-4 py-3">
       <dt className="text-micro text-ink-subtle">{label}</dt>
       <dd className={`font-display text-heading-2 ${colour}`} data-numeric>
-        {value}
+        {display ?? value}
       </dd>
     </div>
   );
+}
+
+/** Seconds as the coarsest unit that still says something useful. */
+function formatDuration(seconds: number): string {
+  if (seconds < 90 * 60) return `${Math.max(1, Math.round(seconds / 60))}m`;
+  const hours = seconds / 3600;
+  if (hours < 48) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 /**
