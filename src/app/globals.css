@@ -156,10 +156,19 @@
     --color-line: #322b23;
     --color-line-strong: #473e33;
 
-    --color-accent: #d98a92;
-    --color-accent-hover: #e8a3a9;
+    /*
+     * Still claret, lifted only as far as contrast requires. The first dark
+     * palette pushed the accent to #d98a92, which on a near-black ground reads
+     * as blush pink - the exact template-wedding register the design brief
+     * rejects, and doubly wrong when the accent is the one saturated thing on
+     * the page. #b8303f keeps the colour's identity: white on it is 5.9:1, and
+     * it clears 3:1 against the ground so the button edge is visible as a
+     * non-text boundary.
+     */
+    --color-accent: #b8303f;
+    --color-accent-hover: #c93a49;
     --color-accent-soft: #2e1a1c;
-    --color-accent-ink: #1a0f10;
+    --color-accent-ink: #ffffff;
 
     --color-sage: #9fb5a5;
     --color-sage-soft: #1d241f;
@@ -171,7 +180,10 @@
     --color-critical: #e79b95;
     --color-critical-soft: #2a1513;
 
-    --color-focus: #d98a92;
+    /* Lighter than the accent on purpose: a focus ring has to be findable
+       against both paper and paper-raised, and 3.7:1 against the ground is
+       what makes it so. */
+    --color-focus: #c93a49;
 
     --shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);

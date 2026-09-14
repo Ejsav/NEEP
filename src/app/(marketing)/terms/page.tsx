@@ -20,6 +20,19 @@ export const metadata: Metadata = {
  * The coordinator and transportation sections are legally load-bearing. See
  * docs/DECISIONS.md D-013.
  */
+/** Section index for the sticky nav. Every id matches an h2 below. */
+const SECTIONS = [
+  { id: "what-an-inquiry-is-and-is-not", label: "What an inquiry is" },
+  { id: "we-coordinate-we-do-not-operate", label: "We coordinate, not operate" },
+  { id: "transportation-specifically", label: "Transportation" },
+  { id: "where-we-work", label: "Where we work" },
+  { id: "what-is-on-this-site", label: "What is on this site" },
+  { id: "the-engagement-itself", label: "The engagement itself" },
+  { id: "the-legal-entity", label: "The legal entity" },
+  { id: "governing-law", label: "Governing law" },
+  { id: "questions", label: "Questions" },
+] as const;
+
 export default function TermsPage() {
   return (
     <>
@@ -30,13 +43,13 @@ export default function TermsPage() {
         crumb={{ href: "/terms", label: "Terms" }}
       />
 
-      <Prose>
+      <Prose index={[...SECTIONS]}>
         <p>
           This site is operated by {siteConfig.legalName}, trading as{" "}
           {siteConfig.name}. Using it means these terms apply to you.
         </p>
 
-        <h2>What an inquiry is, and is not</h2>
+        <h2 id="what-an-inquiry-is-and-is-not">What an inquiry is, and is not</h2>
         <p>
           Sending an inquiry starts a conversation. It is not a booking, it does
           not reserve a date, and it does not commit either of us to anything. No
@@ -48,7 +61,7 @@ export default function TermsPage() {
           faith on the information we have. It is not a quote and not an offer.
         </p>
 
-        <h2>We coordinate; we do not operate</h2>
+        <h2 id="we-coordinate-we-do-not-operate">We coordinate; we do not operate</h2>
         <p>
           {siteConfig.name} holds your relationship and the coordination. The
           work itself is carried out by independent third-party providers:
@@ -63,7 +76,7 @@ export default function TermsPage() {
           We will tell you what those terms say before you sign them.
         </p>
 
-        <h2>Transportation specifically</h2>
+        <h2 id="transportation-specifically">Transportation specifically</h2>
         <p>
           We do not own vehicles, employ drivers, or hold carrier authority, and
           we are not a transportation operator. Where an event requires
@@ -73,13 +86,13 @@ export default function TermsPage() {
           of that service.
         </p>
 
-        <h2>Where we work</h2>
+        <h2 id="where-we-work">Where we work</h2>
         <p>
           We operate in Connecticut. We are not offering services elsewhere, and
           nothing on this site should be read as a representation that we are.
         </p>
 
-        <h2>What is on this site</h2>
+        <h2 id="what-is-on-this-site">What is on this site</h2>
         <p>
           We write this content carefully and we do not publish claims we cannot
           support. Venue details, policies, timings and costs described anywhere
@@ -93,7 +106,7 @@ export default function TermsPage() {
           them commercially without asking.
         </p>
 
-        <h2>The engagement itself</h2>
+        <h2 id="the-engagement-itself">The engagement itself</h2>
         <p>
           The terms governing an actual event — scope, fees, payment schedule,
           cancellation, postponement, liability and insurance — live in the
@@ -102,7 +115,7 @@ export default function TermsPage() {
           written agreement is what counts.
         </p>
 
-        <h2>The legal entity</h2>
+        <h2 id="the-legal-entity">The legal entity</h2>
         <p>
           {siteConfig.name} is a trading name of {siteConfig.legalName}. The
           entity holds other trading names, which are separate businesses with
@@ -110,12 +123,12 @@ export default function TermsPage() {
           and nothing about them applies here.
         </p>
 
-        <h2>Governing law</h2>
+        <h2 id="governing-law">Governing law</h2>
         <p>
           These terms are governed by the laws of the State of Connecticut.
         </p>
 
-        <h2>Questions</h2>
+        <h2 id="questions">Questions</h2>
         <p>
           Ask us through the{" "}
           <Link

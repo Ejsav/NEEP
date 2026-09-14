@@ -51,3 +51,7 @@ next-env.d.ts
 
 # Local verification artifacts
 /server.log
+
+# Local visual-inspection helpers, never committed.
+.shot.mjs
+.restart.sh

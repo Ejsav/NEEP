@@ -22,6 +22,20 @@ export const metadata: Metadata = {
  *
  * If the data handling changes, this page changes in the same commit.
  */
+/** Section index for the sticky nav. Every id matches an h2 below. */
+const SECTIONS = [
+  { id: "what-we-collect-when-you-send-an-inquiry", label: "What we collect" },
+  { id: "answers-saved-before-you-submit", label: "Answers saved before you submit" },
+  { id: "how-you-got-here", label: "How you got here" },
+  { id: "what-we-deliberately-do-not-store", label: "What we do not store" },
+  { id: "cookies", label: "Cookies" },
+  { id: "who-else-sees-it", label: "Who else sees it" },
+  { id: "how-long-we-keep-it", label: "How long we keep it" },
+  { id: "your-choices", label: "Your choices" },
+  { id: "contacting-us-about-privacy", label: "Contacting us" },
+  { id: "changes", label: "Changes" },
+] as const;
+
 export default function PrivacyPage() {
   const slaHours = responseSlaHours();
 
@@ -34,14 +48,14 @@ export default function PrivacyPage() {
         crumb={{ href: "/privacy", label: "Privacy" }}
       />
 
-      <Prose>
+      <Prose index={[...SECTIONS]}>
         <p>
           This policy describes how {siteConfig.legalName}, trading as{" "}
           {siteConfig.name}, handles information collected through this website.
           It describes what the site actually does today.
         </p>
 
-        <h2>What we collect when you send an inquiry</h2>
+        <h2 id="what-we-collect-when-you-send-an-inquiry">What we collect when you send an inquiry</h2>
         <p>
           The planner asks for your name, email address, an optional phone
           number, and details about your event — type, date, guest count, town,
@@ -50,7 +64,7 @@ export default function PrivacyPage() {
           submit so we can answer it.
         </p>
 
-        <h2>Answers saved before you submit</h2>
+        <h2 id="answers-saved-before-you-submit">Answers saved before you submit</h2>
         <p>
           The planner saves your answers as you move between steps, so a dropped
           connection or a closed tab does not cost you the form.
@@ -63,7 +77,7 @@ export default function PrivacyPage() {
           identifier in a cookie rather than to you.
         </p>
 
-        <h2>How you got here</h2>
+        <h2 id="how-you-got-here">How you got here</h2>
         <p>
           We record the page you first landed on, the page you came from, and any
           campaign parameters in the link you followed. This tells us which of
@@ -71,7 +85,7 @@ export default function PrivacyPage() {
           and is not shared.
         </p>
 
-        <h2>What we deliberately do not store</h2>
+        <h2 id="what-we-deliberately-do-not-store">What we deliberately do not store</h2>
         <ul>
           <li>
             <strong>Your IP address.</strong> Abuse prevention needs to
@@ -90,7 +104,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2>Cookies</h2>
+        <h2 id="cookies">Cookies</h2>
         <p>These are the only cookies this site sets:</p>
         <ul>
           <li>
@@ -113,7 +127,7 @@ export default function PrivacyPage() {
           identifier here, which is why there is no consent banner.
         </p>
 
-        <h2>Who else sees it</h2>
+        <h2 id="who-else-sees-it">Who else sees it</h2>
         <p>
           We use an email delivery provider to send notification and reply
           emails, and a hosting provider to run this site and its database. Those
@@ -127,7 +141,7 @@ export default function PrivacyPage() {
           it to anyone for their own marketing.
         </p>
 
-        <h2>How long we keep it</h2>
+        <h2 id="how-long-we-keep-it">How long we keep it</h2>
         <p>
           Inquiries are retained while they are live and afterwards as a business
           record. Partial planner answers expire on their own and are cleared
@@ -135,7 +149,7 @@ export default function PrivacyPage() {
           personal data.
         </p>
 
-        <h2>Your choices</h2>
+        <h2 id="your-choices">Your choices</h2>
         <p>
           You can ask us what we hold about you, ask us to correct it, or ask us
           to delete it. Submitting the form does not subscribe you to anything —
@@ -143,7 +157,7 @@ export default function PrivacyPage() {
           to unsubscribe from.
         </p>
 
-        <h2>Contacting us about privacy</h2>
+        <h2 id="contacting-us-about-privacy">Contacting us about privacy</h2>
         {hasAnyDirectContact() ? (
           <p>
             Write to us using the routes on the{" "}
@@ -169,7 +183,7 @@ export default function PrivacyPage() {
           </p>
         )}
 
-        <h2>Changes</h2>
+        <h2 id="changes">Changes</h2>
         <p>
           If what we do with data changes, this page changes with it rather than
           afterwards.

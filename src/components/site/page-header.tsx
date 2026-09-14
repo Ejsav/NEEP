@@ -48,12 +48,59 @@ export function PageHeader({
   );
 }
 
-/** Constrained column for long-form copy. */
-export function Prose({ children }: { children: React.ReactNode }) {
+/**
+ * Constrained column for long-form copy, with an optional section index.
+ *
+ * A policy is scanned, not read: someone arrives wanting to know whether their
+ * IP address is stored and does not want to read ten sections to find out. The
+ * index makes that a single click, and it happens to fill the column a
+ * measure-width document leaves empty. Pass `index` with an entry per `h2`,
+ * and give each of those headings the matching `id`.
+ *
+ * Sticky rather than fixed, so it scrolls away with its own section on a phone
+ * instead of covering the text it points at.
+ */
+export function Prose({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index?: { id: string; label: string }[];
+}) {
+  const body = (
+    <div className="flex max-w-measure flex-col gap-6 text-body text-ink-muted [&_h2]:mt-6 [&_h2]:scroll-mt-8 [&_h2]:font-display [&_h2]:text-heading-1 [&_h2]:text-ink [&_h3]:mt-2 [&_h3]:font-display [&_h3]:text-heading-2 [&_h3]:text-ink [&_li]:ml-4 [&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-2 [&_strong]:font-semibold [&_strong]:text-ink [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2">
+      {children}
+    </div>
+  );
+
+  if (!index || index.length === 0) {
+    return (
+      <div className="mx-auto max-w-content px-5 py-12 sm:px-8 sm:py-16">{body}</div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-content px-5 py-12 sm:px-8 sm:py-16">
-      <div className="flex max-w-measure flex-col gap-6 text-body text-ink-muted [&_h2]:mt-6 [&_h2]:font-display [&_h2]:text-heading-1 [&_h2]:text-ink [&_h3]:mt-2 [&_h3]:font-display [&_h3]:text-heading-2 [&_h3]:text-ink [&_li]:ml-4 [&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-2 [&_strong]:font-semibold [&_strong]:text-ink [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2">
-        {children}
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
+        {body}
+        <nav
+          aria-label="On this page"
+          className="order-first h-fit lg:sticky lg:top-8 lg:order-none"
+        >
+          <span className="eyebrow text-ink-subtle">On this page</span>
+          <ul className="mt-3 flex flex-col border-t border-line">
+            {index.map((entry) => (
+              <li key={entry.id} className="border-b border-line">
+                <a
+                  href={`#${entry.id}`}
+                  className="block py-2.5 text-small text-ink-muted transition-colors duration-150 hover:text-accent"
+                >
+                  {entry.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </div>
   );

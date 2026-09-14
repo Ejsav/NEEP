@@ -15,6 +15,9 @@ import {
 } from "@/lib/domain/inquiry-options";
 import { PLANNER_STEPS, FINAL_STEP } from "@/lib/domain/planner-steps";
 import { FORM_TOKEN_FIELD, HONEYPOT_FIELD } from "@/lib/security/form-fields";
+// Safe in a client component: every value is a NEXT_PUBLIC_* variable inlined at
+// build time, and the module imports nothing server-only.
+import { siteConfig } from "@/lib/site-config";
 import { submitPlan } from "./actions";
 import {
   initialPlannerState,
@@ -97,6 +100,8 @@ export function PlannerForm({
    * sanctioned "adjust state when an input changes" pattern, and doing it in an
    * effect would be the cascading-render mistake React 19 lints against.
    */
+  const { phone, phoneDisplay, email } = siteConfig.contact;
+
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);
@@ -591,15 +596,63 @@ export function PlannerForm({
         >
           <p className="font-medium">{state.formError}</p>
           {state.persistenceFailed ? (
-            <p className="mt-2 text-ink-muted">
-              Please contact us directly so this doesn&apos;t get lost.
+            /*
+              CLAUDE.md: a lead must never silently disappear, and a persistence
+              failure owes the customer a real error plus a direct contact
+              route. The previous version said "please contact us directly"
+              while the site had no published phone or inbox, which is an
+              instruction to do something impossible - the worst possible copy
+              on the worst possible screen. What it says now depends on what
+              actually exists.
+            */
+            <div className="mt-2 flex flex-col gap-2 text-ink-muted">
+              {phone || email ? (
+                <p>
+                  Please reach us directly so this doesn&apos;t get lost
+                  {phone ? (
+                    <>
+                      {" "}
+                      on{" "}
+                      <a
+                        href={`tel:${phone}`}
+                        className="font-medium text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                      >
+                        {phoneDisplay ?? phone}
+                      </a>
+                    </>
+                  ) : null}
+                  {phone && email ? " or" : null}
+                  {email ? (
+                    <>
+                      {" "}
+                      at{" "}
+                      <a
+                        href={`mailto:${email}`}
+                        className="font-medium text-ink underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                      >
+                        {email}
+                      </a>
+                    </>
+                  ) : null}
+                  .
+                </p>
+              ) : (
+                <p>
+                  Your answers are still on this page, so pressing send again in
+                  a moment is the fastest fix. The failure has been recorded and
+                  someone is alerted to it.
+                </p>
+              )}
               {state.incidentId ? (
-                <>
-                  {" "}
-                  Quote incident <code className="font-mono">{state.incidentId}</code>.
-                </>
+                <p className="text-micro">
+                  Incident reference{" "}
+                  <code data-numeric className="font-mono text-ink">
+                    {state.incidentId}
+                  </code>
+                  . Quoting it lets us find exactly what failed.
+                </p>
               ) : null}
-            </p>
+            </div>
           ) : null}
         </div>
       ) : null}

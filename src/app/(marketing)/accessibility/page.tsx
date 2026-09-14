@@ -19,6 +19,15 @@ export const metadata: Metadata = {
  * scripts/page-contract.mjs or scripts/verify-money-path.mjs that fails the
  * build, which is what separates this from the usual statement of intent.
  */
+/** Section index for the sticky nav. Every id matches an h2 below. */
+const SECTIONS = [
+  { id: "the-standard", label: "The standard" },
+  { id: "what-is-checked-automatically-on-every-change", label: "What is checked automatically" },
+  { id: "other-things-we-have-done-deliberately", label: "Done deliberately" },
+  { id: "where-we-are-honest-about-the-limits", label: "The limits" },
+  { id: "if-something-does-not-work", label: "If something does not work" },
+] as const;
+
 export default function AccessibilityPage() {
   const slaHours = responseSlaHours();
 
@@ -31,15 +40,15 @@ export default function AccessibilityPage() {
         crumb={{ href: "/accessibility", label: "Accessibility" }}
       />
 
-      <Prose>
-        <h2>The standard</h2>
+      <Prose index={[...SECTIONS]}>
+        <h2 id="the-standard">The standard</h2>
         <p>
           We build {siteConfig.name} to meet WCAG 2.2 Level AA. Accessibility is
           part of what &ldquo;finished&rdquo; means here, not a ticket raised
           after launch.
         </p>
 
-        <h2>What is checked automatically, on every change</h2>
+        <h2 id="what-is-checked-automatically-on-every-change">What is checked automatically, on every change</h2>
         <p>
           These are not aspirations. Each one is asserted by a test that fails
           the build if it breaks:
@@ -60,7 +69,7 @@ export default function AccessibilityPage() {
           <li>The page works with JavaScript switched off entirely.</li>
         </ul>
 
-        <h2>Other things we have done deliberately</h2>
+        <h2 id="other-things-we-have-done-deliberately">Other things we have done deliberately</h2>
         <ul>
           <li>
             Colour is never the only way meaning is carried, and text contrast
@@ -81,7 +90,7 @@ export default function AccessibilityPage() {
           <li>The site remains usable at 200% zoom.</li>
         </ul>
 
-        <h2>Where we are honest about the limits</h2>
+        <h2 id="where-we-are-honest-about-the-limits">Where we are honest about the limits</h2>
         <p>
           Automated checks catch structure, not experience. They cannot tell us
           whether a screen reader user finds the planner sensible to work
@@ -91,7 +100,7 @@ export default function AccessibilityPage() {
           earned.
         </p>
 
-        <h2>If something does not work</h2>
+        <h2 id="if-something-does-not-work">If something does not work</h2>
         <p>
           Tell us and we will fix it. An accessibility problem that stops you
           using this site is a defect, and it gets treated as one. Send it
