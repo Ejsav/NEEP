@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { StickyCta } from "@/components/site/sticky-cta";
+import { SlotImage } from "@/components/site/slot-image";
 import { responseSlaHours } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
 import { VERTICALS } from "@/lib/domain/verticals";
@@ -79,6 +80,20 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/*
+          The image sits BELOW the hero copy, not behind it. Text over
+          photography costs contrast and forces a scrim; text first also means
+          the largest paint is a heading the browser already has, which is what
+          holds LCP under budget while still letting a full-bleed image do the
+          emotional work.
+        */}
+        <SlotImage
+          name="hero-home"
+          priority
+          sizes="100vw"
+          className="h-[46vh] max-h-[34rem] w-full object-cover sm:h-[52vh]"
+        />
       </section>
 
       {/* --------------------------------------------------- The four things */}

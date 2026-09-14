@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { StickyCta } from "@/components/site/sticky-cta";
+import { SlotImage, hasSlotImage } from "@/components/site/slot-image";
+import type { ImageSlotName } from "@/lib/images";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
 import { responseSlaHours, siteUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
@@ -59,6 +61,8 @@ export default async function VerticalPage({
   const slaHours = responseSlaHours();
   const base = siteUrl();
   const plannerHref = `/plan?eventType=${vertical.eventType}`;
+  const heroSlot = `hero-${vertical.slug}` as ImageSlotName;
+  const hasHero = hasSlotImage(heroSlot);
 
   const schema = {
     "@context": "https://schema.org",
@@ -106,7 +110,18 @@ export default async function VerticalPage({
 
       {/* ------------------------------------------------------------- Hero */}
       <section className="border-b border-line">
-        <div className="mx-auto max-w-content px-5 pb-14 pt-6 sm:px-8 sm:pb-20">
+        <div
+          className={
+            hasHero
+              ? "mx-auto grid max-w-content items-center gap-8 px-5 pb-14 pt-6 sm:px-8 sm:pb-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14"
+              : "mx-auto max-w-content px-5 pb-14 pt-6 sm:px-8 sm:pb-20"
+          }
+        >
+          {/*
+            Two columns when there is a photograph, one when there is not. The
+            split carries a portrait image as naturally as a landscape one,
+            which is why it is used here rather than a full-bleed band.
+          */}
           <div className="flex max-w-3xl flex-col gap-6">
             <span className="eyebrow">
               {siteConfig.serviceArea.description} &middot; {vertical.title}
@@ -124,6 +139,15 @@ export default async function VerticalPage({
               </p>
             </div>
           </div>
+
+          {hasHero ? (
+            <SlotImage
+              name={heroSlot}
+              priority
+              sizes="(min-width: 1024px) 46vw, 100vw"
+              className="aspect-[4/3] w-full rounded-xl object-cover lg:aspect-[5/6]"
+            />
+          ) : null}
         </div>
       </section>
 

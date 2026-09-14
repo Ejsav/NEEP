@@ -32,8 +32,14 @@ const KB = 1024;
  * total    - KB ceiling for every resource on the route.
  */
 const BUDGETS = [
-  { path: "/", addedJs: 10, firstLoad: 145, total: 800 },
+  // next/image adds roughly 5KB of client JS to any route that uses it, which
+  // is why the pillar routes are held here rather than assumed to match the
+  // homepage.
+  { path: "/", addedJs: 12, firstLoad: 148, total: 800 },
+  { path: "/weddings", addedJs: 12, firstLoad: 148, total: 700 },
+  { path: "/corporate-events", addedJs: 12, firstLoad: 148, total: 700 },
   { path: "/plan", addedJs: 25, firstLoad: 160, total: 500 },
+  { path: "/venues", addedJs: 12, firstLoad: 148, total: 900 },
 ];
 
 async function measure(browser, route) {
