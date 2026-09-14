@@ -173,6 +173,13 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /*
+     * The mobile action bar is fixed over the bottom of the viewport, so
+     * anything scrolled to the bottom edge - by a focus move, an anchor, or a
+     * programmatic scrollIntoView - would otherwise land underneath it and be
+     * unclickable.
+     */
+    scroll-padding-bottom: 6rem;
   }
 
   body {
@@ -265,6 +272,60 @@
       opacity: 1;
       transform: translate3d(0, 0, 0);
     }
+  }
+
+  /*
+   * Scroll reveal. The attribute is only set once the observer is running, so
+   * content is never hidden by CSS that JavaScript failed to undo.
+   */
+  [data-reveal="hidden"] {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+
+  [data-reveal="shown"] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition:
+      opacity var(--duration-base) var(--ease-out-quiet),
+      transform var(--duration-base) var(--ease-out-quiet);
+  }
+
+  /*
+   * Planner progressive enhancement.
+   *
+   * The server renders every step visible, with both a final submit and the
+   * wizard navigation in the markup. Which of the two is real depends entirely
+   * on whether JavaScript ran - and that is decided here, in CSS, rather than
+   * by rendering different HTML, so the no-JS path is the DEFAULT rather than a
+   * fallback that has to be remembered.
+   *
+   * Not enhanced: all five steps visible, one submit at the end, no wizard nav.
+   * Enhanced: one step at a time, wizard nav, and the standalone submit removed
+   * because the nav carries its own on the last step.
+   */
+  /*
+   * Display for these three is owned here and nowhere else. They deliberately
+   * carry no `flex` utility class: Tailwind's utilities layer outranks this
+   * components layer, so a `flex` on the element would silently beat
+   * `display: none` and the wizard navigation would show up on the no-JS path.
+   */
+  .planner .planner-nav,
+  .planner .planner-progress {
+    display: none;
+  }
+
+  .planner .planner-submit {
+    display: flex;
+  }
+
+  .planner[data-enhanced="true"] .planner-nav,
+  .planner[data-enhanced="true"] .planner-progress {
+    display: flex;
+  }
+
+  .planner[data-enhanced="true"] .planner-submit {
+    display: none;
   }
 
   /* Skip link: present in the DOM, revealed on focus. */

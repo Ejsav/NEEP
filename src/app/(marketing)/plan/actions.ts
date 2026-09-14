@@ -21,9 +21,17 @@ import {
   rateLimitKey,
 } from "@/lib/security/request-context";
 import { createInquiry } from "@/lib/inquiries/create";
+import {
+  clearDraftCookie,
+  convertDraft,
+  getActiveDraft,
+  recordFunnelEvent,
+} from "@/lib/inquiries/drafts";
+import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/security/turnstile";
 import { notifyNewInquiry } from "@/lib/notify";
 import { responseSlaHours } from "@/lib/env";
-import { FORM_SCOPE, type InquiryFormState } from "./form-state";
+import { FINAL_STEP } from "@/lib/domain/planner-steps";
+import { FORM_SCOPE, type PlannerFormState } from "./form-state";
 
 /**
  * Inquiry submission.
@@ -56,7 +64,7 @@ function echoValues(formData: FormData): Record<string, string | string[]> {
 }
 
 /** Silent success. A bot gets the same response a person does and learns nothing. */
-function decoySuccess(): InquiryFormState {
+function decoySuccess(): PlannerFormState {
   return {
     status: "success",
     reference: undefined,
@@ -64,10 +72,10 @@ function decoySuccess(): InquiryFormState {
   };
 }
 
-export async function submitInquiry(
-  _previous: InquiryFormState,
+export async function submitPlan(
+  _previous: PlannerFormState,
   formData: FormData,
-): Promise<InquiryFormState> {
+): Promise<PlannerFormState> {
   const context = await getRequestContext();
   const values = echoValues(formData);
 
@@ -137,6 +145,19 @@ export async function submitInquiry(
     };
   }
 
+  // 3b. Turnstile, when configured. With no keys it is a no-op and the honeypot,
+  // form token and rate limiter carry the load. See src/lib/security/turnstile.ts.
+  const turnstile = await verifyTurnstile(
+    formData.get(TURNSTILE_FIELD)?.toString(),
+  );
+  if (turnstile.configured && !turnstile.ok) {
+    console.warn("[inquiry] rejected by turnstile", {
+      reason: turnstile.reason,
+      ipHash: context.ipHash,
+    });
+    return decoySuccess();
+  }
+
   // 4. Authoritative validation. The browser's checks are a courtesy; this is law.
   const raw = {
     eventType: formData.get("eventType"),
@@ -153,6 +174,7 @@ export async function submitInquiry(
     venueName: formData.get("venueName"),
     eventTown: formData.get("eventTown"),
     budgetBand: formData.get("budgetBand") || undefined,
+    scopeTier: formData.get("scopeTier") || undefined,
     servicesNeeded: formData.getAll("servicesNeeded").map(String),
     message: formData.get("message"),
   };
@@ -178,13 +200,27 @@ export async function submitInquiry(
   }
 
   // 6. Persist. This is the only step whose failure loses a customer.
-  const submittedFromPath = "/start";
+  //
+  // The draft is resolved BEFORE the insert so the link can be written in the
+  // same row. inquiries.draft_id is uniquely indexed, so "exactly one inquiry
+  // per draft" is enforced by the database rather than trusted to this code.
+  // A visitor with no draft (cookie cleared, or the no-JS path) simply gets a
+  // null - the lead is never at risk for want of reporting metadata.
+  const draft = await getActiveDraft();
+  const submittedFromPath = "/plan";
   try {
     const { inquiry, attributionCaptured } = await createInquiry(
       parsed.data,
       context,
       submittedFromPath,
+      draft?.id ?? null,
     );
+
+    if (draft) {
+      await recordFunnelEvent(draft.id, FINAL_STEP, "submit", context);
+      await convertDraft(draft.id, inquiry.id);
+      await clearDraftCookie();
+    }
 
     if (!attributionCaptured) {
       console.warn("[inquiry] stored without attribution", {

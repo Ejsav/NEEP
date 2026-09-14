@@ -1,15 +1,16 @@
 import type { FieldErrors } from "@/lib/validation/inquiry";
 
 /**
- * Shared shapes for the inquiry form.
+ * Shared shapes for the planner.
  *
  * These live outside actions.ts because a "use server" module may only export
  * async functions - constants and types exported from one are a build error.
  */
 
-export const FORM_SCOPE = "inquiry";
+export const FORM_SCOPE = "planner";
+export const DRAFT_SCOPE = "planner-draft";
 
-export type InquiryFormState = {
+export type PlannerFormState = {
   status: "idle" | "success" | "error";
   /** Errors keyed by field name, rendered next to the input. */
   fieldErrors?: FieldErrors;
@@ -30,4 +31,21 @@ export type InquiryFormState = {
   values?: Record<string, string | string[]>;
 };
 
-export const initialInquiryState: InquiryFormState = { status: "idle" };
+export const initialPlannerState: PlannerFormState = { status: "idle" };
+
+/** Prefill for a returning visitor whose draft is still active. */
+export type PlannerDefaults = {
+  eventType?: string;
+  eventDate?: string;
+  eventDateFlexible?: boolean;
+  guestCountMin?: string;
+  guestCountMax?: string;
+  eventTown?: string;
+  venueStatus?: string;
+  venueName?: string;
+  scopeTier?: string;
+  budgetBand?: string;
+  servicesNeeded?: string[];
+  /** Highest step the visitor previously reached, so we can resume there. */
+  resumeStep?: number;
+};

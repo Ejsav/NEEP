@@ -10,6 +10,7 @@
  * Requires: a built app served on :3000, and DATABASE_URL pointing at it.
  */
 import { chromium } from "playwright";
+import { resolveChromium } from "./lib/chromium.mjs";
 
 const BASE = process.env.VERIFY_BASE_URL ?? "http://localhost:3000";
 
@@ -32,12 +33,18 @@ function check(name, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  -- ${detail}` : ""}`);
 }
 
-const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-});
+const browser = await chromium.launch({ executablePath: resolveChromium() });
 
 const consoleErrors = [];
 const pageErrors = [];
+/**
+ * Failed requests, recorded with their URL.
+ *
+ * "Failed to load resource" in the console names no URL, which makes a 404
+ * fired from a prefetch on a previous page effectively undebuggable. Recording
+ * the response separately is what turns that into an actionable line.
+ */
+const failedRequests = [];
 
 async function newCtx(opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, ...opts });
@@ -46,6 +53,9 @@ async function newCtx(opts = {}) {
     if (m.type() === "error") consoleErrors.push(`${page.url()} :: ${m.text()}`);
   });
   page.on("pageerror", (e) => pageErrors.push(`${page.url()} :: ${e.message}`));
+  page.on("response", (r) => {
+    if (r.status() >= 400) failedRequests.push(`${r.status()} ${r.url()}`);
+  });
   return { ctx, page };
 }
 
@@ -126,9 +136,9 @@ const submittedRef = { value: null };
     { waitUntil: "networkidle" },
   );
   // Visit 2: internal navigation, must NOT overwrite last touch.
-  await page.goto(`${BASE}/start`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/plan`, { waitUntil: "networkidle" });
 
-  await noOverflow(page, "start");
+  await noOverflow(page, "plan");
 
   const cookies = await ctx.cookies();
   check(
@@ -141,10 +151,10 @@ const submittedRef = { value: null };
   );
 
   const h1 = await page.locator("h1").allTextContents();
-  check("start: exactly one h1", h1.length === 1, JSON.stringify(h1));
+  check("plan: exactly one h1", h1.length === 1, JSON.stringify(h1));
 
   const canonical = await page.getAttribute('link[rel="canonical"]', "href");
-  check("start: canonical present", String(canonical).endsWith("/start"), String(canonical));
+  check("plan: canonical present", String(canonical).endsWith("/plan"), String(canonical));
 
   // Every input has an associated label.
   const unlabelled = await page.evaluate(() => {
@@ -160,7 +170,7 @@ const submittedRef = { value: null };
     }
     return bad;
   });
-  check("start: every control is labelled", unlabelled.length === 0, unlabelled.join(","));
+  check("plan: every control is labelled", unlabelled.length === 0, unlabelled.join(","));
 
   const honeypot = await page.evaluate(() => {
     const el = document.querySelector('input[name="company_website"]');
@@ -176,7 +186,7 @@ const submittedRef = { value: null };
     };
   });
   check(
-    "start: honeypot is off-screen, transparent, aria-hidden and untabbable",
+    "plan: honeypot is off-screen, transparent, aria-hidden and untabbable",
     Boolean(
       honeypot?.offscreen &&
         honeypot?.hiddenFromAT &&
@@ -186,29 +196,60 @@ const submittedRef = { value: null };
     JSON.stringify(honeypot),
   );
 
-  // Fill and submit.
-  await page.locator('input[name="eventType"][value="wedding"]').check();
-  await page.fill('input[name="firstName"]', "Priya");
-  await page.fill('input[name="lastName"]', "Raghunathan");
-  await page.fill('input[name="email"]', "browser-verify@example.com");
-  await page.fill('input[name="phone"]', "(860) 555-0147");
+  // Walk the wizard. Inactive steps are `inert`, so their controls are
+  // deliberately unreachable until the visitor actually gets there - which is
+  // the behaviour being verified as much as it is a means of filling the form.
+  async function continueStep() {
+    await page.locator(".planner-nav button", { hasText: "Continue" }).click();
+  }
+
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + 280);
+
+  // Step 1 - event type.
+  await page.locator('input[name="eventType"][value="wedding"]').check();
+  check(
+    "planner: later steps are inert until reached",
+    await page.locator('[data-planner-step="5"]').evaluate((n) => n.hidden && n.inert),
+  );
+  await continueStep();
+
+  // Step 2 - date and size.
   await page.fill('input[name="eventDate"]', d.toISOString().slice(0, 10));
   await page.fill('input[name="guestCountMin"]', "110");
   await page.fill('input[name="guestCountMax"]', "150");
   await page.fill('input[name="eventTown"]', "Mystic");
-  await page.selectOption('select[name="budgetBand"]', "50k_100k");
-  await page.selectOption('select[name="venueStatus"]', "need_help");
-  await page.locator('input[name="servicesNeeded"][value="full_planning"]').check();
+  await continueStep();
+
+  // Step 3 - venue.
+  await page.locator('input[name="venueStatus"][value="need_help"]').check();
+  await continueStep();
+
+  // Give the fire-and-forget draft save time to land before moving on.
+  await page.waitForTimeout(600);
+
+  // Step 4 - scope, budget, modules.
+  await page.locator('input[name="scopeTier"][value="full_planning"]').check();
+  await page.locator('input[name="budgetBand"][value="50k_100k"]').check();
+  await page.locator('input[name="servicesNeeded"][value="venue_sourcing"]').check();
   await page
     .locator('input[name="servicesNeeded"][value="guest_transport_coordination"]')
     .check();
+  await continueStep();
+
+  // Step 5 - contact, the only PII in the flow.
+  const progress = await page.locator('[role="progressbar"]').getAttribute("aria-valuenow");
+  check("planner: progress tracks the final step", progress === "5", String(progress));
+
+  await page.fill('input[name="firstName"]', "Priya");
+  await page.fill('input[name="lastName"]', "Raghunathan");
+  await page.fill('input[name="email"]', "browser-verify@example.com");
+  await page.fill('input[name="phone"]', "(860) 555-0147");
   await page.fill('textarea[name="message"]', "Shoreline wedding, need shuttle logistics.");
 
   // The form token enforces a minimum fill time; a real person takes longer.
   await page.waitForTimeout(3000);
-  await page.click('button[type="submit"]');
+  await page.locator('.planner-nav button[type="submit"]').click();
   await page.waitForSelector('[role="status"]', { timeout: 15000 });
 
   const receipt = await page.locator('[role="status"]').innerText();
@@ -217,43 +258,89 @@ const submittedRef = { value: null };
   check("submit: success receipt with a reference", Boolean(submittedRef.value), submittedRef.value ?? receipt.slice(0, 120));
   check("submit: receipt states the response commitment", /within \d+ hours/.test(receipt));
 
-  await noOverflow(page, "start (receipt)");
+  await noOverflow(page, "plan (receipt)");
   await ctx.close();
 }
 
-// ------------------------------------------------------- 3. Server validation
+// ----------------------------------- 3. Server validation, with JavaScript off
+//
+// Run without JavaScript on purpose. It exercises the progressive-enhancement
+// contract directly: with no JS the planner is one long form with a single
+// submit, native validation is suppressed at form level so the request actually
+// reaches the server, and the server's answer is what the visitor sees.
 {
-  const { ctx, page } = await newCtx();
-  await page.goto(`${BASE}/start`, { waitUntil: "networkidle" });
+  const { ctx, page } = await newCtx({ javaScriptEnabled: false });
+  await page.goto(`${BASE}/plan`, { waitUntil: "domcontentloaded" });
 
-  // Submit with nothing filled in. Browser validation is bypassed via noValidate.
+  const stepState = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll("[data-planner-step]")];
+    return {
+      count: nodes.length,
+      anyHidden: nodes.some((n) => n.hidden),
+      navVisible: Boolean(
+        document.querySelector(".planner-nav") &&
+          getComputedStyle(document.querySelector(".planner-nav")).display !== "none",
+      ),
+      submitVisible: Boolean(
+        document.querySelector(".planner-submit") &&
+          getComputedStyle(document.querySelector(".planner-submit")).display !== "none",
+      ),
+    };
+  });
+  check("no-JS: all five steps are visible", stepState.count === 5 && !stepState.anyHidden, JSON.stringify(stepState));
+  check("no-JS: wizard navigation is not shown", stepState.navVisible === false);
+  check("no-JS: a real submit button is shown", stepState.submitVisible === true);
+
+  // The form token enforces a minimum fill time before every submit, including
+  // this one. A page re-rendered by a rejected post carries a fresh token, so
+  // each attempt below needs its own wait.
   await page.waitForTimeout(3000);
-  await page.click('button[type="submit"]');
-  // Scoped to this form's own error: Next renders a route announcer that also
-  // carries role="alert", so a bare [role="alert"] selector is ambiguous.
+  await page.locator('.planner-submit button[type="submit"]').click();
   await page.waitForSelector("[data-form-error]", { timeout: 15000 });
 
   const alert = await page.locator("[data-form-error]").innerText();
-  check("validation: server rejects an empty submission", alert.length > 0, alert.slice(0, 80));
+  check("no-JS: server rejects an empty submission", alert.length > 0, alert.slice(0, 80));
 
   const fieldErrors = await page.locator("p.text-critical").allTextContents();
   check(
-    "validation: errors render next to fields",
+    "no-JS: errors render next to fields",
     fieldErrors.filter((t) => t.trim()).length >= 3,
     String(fieldErrors.filter((t) => t.trim()).length),
   );
 
   const invalidCount = await page.locator('[aria-invalid="true"]').count();
-  check("validation: invalid fields carry aria-invalid", invalidCount >= 3, String(invalidCount));
+  check("no-JS: invalid fields carry aria-invalid", invalidCount >= 3, String(invalidCount));
 
   // Values must survive a rejected submission.
   await page.fill('input[name="firstName"]', "Keeps");
   await page.fill('input[name="email"]', "not-an-email");
   await page.waitForTimeout(3000);
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(1500);
+  await page.locator('.planner-submit button[type="submit"]').click();
+  await page.waitForSelector("[data-form-error]", { timeout: 15000 });
   const kept = await page.inputValue('input[name="firstName"]');
-  check("validation: typed values survive a rejection", kept === "Keeps", kept);
+  check("no-JS: typed values survive a rejection", kept === "Keeps", kept);
+
+  // And a complete no-JS submission must actually save a lead.
+  const nd = new Date();
+  nd.setUTCDate(nd.getUTCDate() + 200);
+  await page.locator('input[name="eventType"][value="corporate"]').check();
+  await page.fill('input[name="eventDate"]', nd.toISOString().slice(0, 10));
+  await page.fill('input[name="guestCountMin"]', "60");
+  await page.fill('input[name="guestCountMax"]', "80");
+  await page.fill('input[name="eventTown"]', "Hartford");
+  await page.locator('input[name="venueStatus"][value="shortlisted"]').check();
+  await page.locator('input[name="scopeTier"][value="partial_planning"]').check();
+  await page.locator('input[name="budgetBand"][value="25k_50k"]').check();
+  await page.fill('input[name="firstName"]', "Nojs");
+  await page.fill('input[name="lastName"]', "Submitter");
+  await page.fill('input[name="email"]', "nojs-verify@example.com");
+  await page.waitForTimeout(3000);
+  await page.locator('.planner-submit button[type="submit"]').click();
+  await page.waitForSelector('[role="status"]', { timeout: 15000 });
+
+  const noJsReceipt = await page.locator('[role="status"]').innerText();
+  const noJsRef = noJsReceipt.match(/NEEP-[0-9A-Z]{6}/);
+  check("no-JS: a complete submission saves a lead", Boolean(noJsRef), noJsRef ? noJsRef[0] : noJsReceipt.slice(0, 120));
 
   await ctx.close();
 }
@@ -261,7 +348,7 @@ const submittedRef = { value: null };
 // ---------------------------------------------------------- 4. Keyboard only
 {
   const { ctx, page } = await newCtx({ viewport: { width: 1280, height: 900 } });
-  await page.goto(`${BASE}/start`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/plan`, { waitUntil: "networkidle" });
 
   // Tab from the top and confirm focus reaches the submit button without a trap.
   await page.keyboard.press("Tab");
@@ -279,17 +366,18 @@ const submittedRef = { value: null };
       return {
         tag: el.tagName,
         type: el.getAttribute("type"),
+        text: (el.textContent ?? "").trim(),
         outline: cs.outlineStyle !== "none" && cs.outlineWidth !== "0px",
       };
     });
     if (!info) break;
     if (info.outline) focusRingSeen = true;
-    if (info.tag === "BUTTON" && info.type === "submit") {
+    if (info.tag === "BUTTON" && (info.type === "submit" || info.text === "Continue")) {
       reachedSubmit = true;
       break;
     }
   }
-  check("keyboard: submit button reachable by Tab", reachedSubmit);
+  check("keyboard: the step's primary action is reachable by Tab", reachedSubmit);
   check("keyboard: focus is visibly indicated", focusRingSeen);
 
   // Complete the whole flow with the keyboard only.
@@ -364,7 +452,10 @@ const submittedRef = { value: null };
     // Click the row link, then wait for the URL itself. `networkidle` resolves
     // too early here: Next aborts its in-flight RSC prefetch on click, which
     // looks like idle before the destination has rendered.
-    await page.locator('a[href^="/admin/inquiries/"]').first().click();
+    await page
+      .locator('a[href^="/admin/inquiries/"]', { hasText: submittedRef.value })
+      .first()
+      .click();
     await page.waitForURL(/\/admin\/inquiries\/[0-9a-f-]{36}/, { timeout: 20000 });
     await page.waitForLoadState("networkidle");
     const detail = await page.locator("body").innerText();
@@ -372,7 +463,7 @@ const submittedRef = { value: null };
     check("admin detail: first touch source captured", detail.includes("google"));
     check("admin detail: campaign captured", detail.includes("ct-weddings-2026"));
     check("admin detail: click id captured", detail.includes("BROWSERTEST123"));
-    check("admin detail: submitted-from path captured", detail.includes("/start"));
+    check("admin detail: submitted-from path captured", detail.includes("/plan"));
     check(
       "admin detail: notification status is honest",
       detail.includes("no email provider configured") ||
@@ -403,7 +494,7 @@ const submittedRef = { value: null };
       } catch {}
     }
   });
-  await page.goto(`${BASE}/start`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/plan`, { waitUntil: "networkidle" });
   const all = scripts.join("\n");
   // Needles are read from the live environment, so this asserts the ACTUAL
   // secrets in use are absent - not a set of hard-coded example strings.
@@ -435,6 +526,11 @@ const submittedRef = { value: null };
 }
 
 check("no uncaught page errors", pageErrors.length === 0, pageErrors.slice(0, 3).join(" | "));
+check(
+  "no failed requests",
+  failedRequests.length === 0,
+  failedRequests.slice(0, 3).join(" | "),
+);
 check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
 
 await browser.close();

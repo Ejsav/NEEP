@@ -27,6 +27,36 @@ import type { RequestContext } from "@/lib/security/request-context";
  * pointing at an inquiry that never committed - is impossible.
  */
 
+/**
+ * True when `error` is a unique-violation on `constraint`.
+ *
+ * Drizzle wraps the driver error, so the top-level message is "Failed query:
+ * insert into ..." and never contains the constraint name. Matching on
+ * `error.message` therefore silently never matched, which meant the reference
+ * collision retry below could not actually have retried. The driver error is
+ * reachable through the cause chain, where SQLSTATE 23505 and `constraint_name`
+ * both live.
+ */
+function violatesUnique(error: unknown, constraint: string): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current; depth += 1) {
+    const candidate = current as {
+      code?: string;
+      constraint_name?: string;
+      message?: string;
+      cause?: unknown;
+    };
+    if (candidate.code === "23505" && candidate.constraint_name === constraint) {
+      return true;
+    }
+    if (typeof candidate.message === "string" && candidate.message.includes(constraint)) {
+      return true;
+    }
+    current = candidate.cause;
+  }
+  return false;
+}
+
 export type PersistedInquiry = {
   inquiry: Inquiry;
   attributionCaptured: boolean;
@@ -70,6 +100,7 @@ async function insertInquiryWithReference(
   input: InquiryInput,
   submittedAt: Date,
   responseDueAt: Date,
+  draftId: string | null,
 ): Promise<Inquiry> {
   // The reference column is uniquely indexed. Retry on the astronomically
   // unlikely collision rather than failing a real customer's submission.
@@ -97,7 +128,9 @@ async function insertInquiryWithReference(
           eventTown: input.eventTown ?? null,
           budgetBand: input.budgetBand ?? null,
           servicesNeeded: input.servicesNeeded,
+          scopeTier: (input.scopeTier ?? null) as Inquiry["scopeTier"],
           message: input.message ?? null,
+          draftId,
           submittedAt,
           responseDueAt,
         })
@@ -105,9 +138,16 @@ async function insertInquiryWithReference(
       if (row) return row;
     } catch (error) {
       lastError = error;
-      const message = error instanceof Error ? error.message : String(error);
+      // A draft that somehow already has an inquiry must not block this one.
+      // The unique index is doing its job; drop the link and keep the lead,
+      // because reporting metadata is never worth losing a customer over.
+      if (violatesUnique(error, "inquiries_draft_id_key")) {
+        console.error("[inquiry] draft %s already linked - saving unlinked", draftId);
+        draftId = null;
+        continue;
+      }
       // Anything other than a reference collision is a real failure.
-      if (!message.includes("inquiries_reference_key")) throw error;
+      if (!violatesUnique(error, "inquiries_reference_key")) throw error;
     }
   }
 
@@ -120,6 +160,7 @@ export async function createInquiry(
   input: InquiryInput,
   context: RequestContext,
   submittedFromPath: string,
+  draftId: string | null = null,
 ): Promise<PersistedInquiry> {
   const jar = await cookies();
   const firstTouch = decodeTouch(jar.get(COOKIE_FIRST_TOUCH)?.value);
@@ -137,6 +178,7 @@ export async function createInquiry(
     input,
     submittedAt,
     responseDueAt,
+    draftId,
   );
 
   // Step 2: attribution. Best effort by design.

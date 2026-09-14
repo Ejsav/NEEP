@@ -625,3 +625,76 @@ founder acts. This is a named blocker.
 **Revisit condition.** The founder supplies a real fee structure. Then ship the
 pricing slice, with every material variable disclosed adjacently and estimator
 output labelled an estimate, not a quote.
+
+---
+
+## D-019 — Generated imagery, used as atmosphere and never as evidence
+
+**Decision.** Site photography may be AI-generated or licensed stock. It is used
+for mood only, is never captioned or positioned as documenting work this company
+performed, and every image is reviewed against a fixed checklist before it
+ships.
+
+**Evidence.** STRATEGIC INFERENCE, with one VERIFIED FACT inside it.
+
+- `CLAUDE.md` already permits licensed or stock imagery for mood and atmosphere,
+  and already forbids presenting it as documentation of our own work. Generated
+  imagery is the same category: what matters is the claim a viewer takes from
+  the page, not how the pixels were produced.
+- **VERIFIED FACT, from the first batch reviewed:** three of five generated
+  images raised content questions, none of them about origin.
+  1. A conference-room image renders an organisation name on the lectern and
+     civic taglines on the walls, which can be read as a client relationship
+     that does not exist.
+  2. A dinner-table image depicts olive groves, cypress and vineyard hills -
+     unmistakably Mediterranean - against a scope that is Connecticut-only.
+  3. A coordination image carried a legible run-of-show dated in the past,
+     which reads as documentation of a completed event. Regenerated with a
+     future date, it cleared.
+- **Founder decision, recorded:** items 1 and 2 were raised, the reasoning was
+  put in writing twice, and the founder elected to publish both as-is on the
+  grounds that the scenes are synthetic. Item 3 was regenerated.
+- The disagreement is worth stating precisely, because it defines what this
+  decision does and does not cover: the objection was never that the images are
+  generated. It was that a viewer reads what is inside the frame - a name on a
+  lectern, a cypress on a hillside - and cannot tell whether the pixels behind
+  it were photographed or produced. Synthetic origin answers a question nobody
+  asks.
+- The failure mode is therefore predictable and specific: generators emit real
+  and real-seeming brands, wrong geography, and plausible documents. Origin is
+  not the risk. Frame content is.
+
+**Alternatives.** Own photography only (slower, but nothing synthetic); licensed
+stock (real geography and documented rights, but a per-image cost); no
+photography at all (fastest and cleanest, and the site already passes every
+check without it).
+
+**Reason chosen.** The founder's call, made with the tradeoff stated in full.
+Generated imagery reaches a finished look immediately at no cost, and the
+honesty rule that governs it is the same one that already governs stock.
+
+**Risk.** Two specific exposures are live and accepted:
+
+1. If the organisation named on the lectern is real, publishing it on a service
+   page can be read as claiming a client we do not have, and is a trademark
+   question besides. If it is not real, it is an invented client. Either
+   reading fails the no-fabrication rule on its face.
+2. A Mediterranean landscape on a Connecticut-only site cuts against the
+   geographic honesty the rest of the copy is careful about, and against the
+   specificity that `docs/CONTENT_MODEL.md` treats as the brand's tone.
+
+Beyond those: a site whose central argument is "we fabricate nothing" using
+synthetic photography is a tension a sharp visitor could name. Defensible -
+atmosphere is not proof - but not costless, and it depends on the checklist
+being applied every time rather than most times.
+
+**How measured.** The review checklist in `public/images/README.md`, applied
+before any image is committed. The page-contract check enforces alt text on
+every image; it cannot enforce what is inside the frame, and a human must.
+
+**Revisit condition.** Real event photography exists, at which point genuine
+images of our own work replace generated ones wherever they can - real proof
+outranks atmosphere every time. Sooner than that: if anyone outside the company
+reads the lectern image as a client claim, or the Mediterranean image as a
+service area, replace those two first - they are the two this decision
+knowingly accepted.

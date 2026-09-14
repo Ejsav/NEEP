@@ -32,7 +32,7 @@ const validBase = {
   venueName: "Saint Clements Castle",
   eventTown: "Portland",
   budgetBand: "25k_50k",
-  servicesNeeded: ["full_planning", "venue_sourcing"],
+  servicesNeeded: ["vendor_sourcing", "venue_sourcing"],
   message: "Looking for help with the whole weekend.",
 };
 
@@ -65,7 +65,7 @@ describe("inquiryInputSchema", () => {
   it("rejects a service value that is not in the canonical list", () => {
     const result = inquiryInputSchema.safeParse({
       ...validBase,
-      servicesNeeded: ["full_planning", "definitely_not_a_service"],
+      servicesNeeded: ["venue_sourcing", "definitely_not_a_service"],
     });
     expect(result.success).toBe(false);
   });

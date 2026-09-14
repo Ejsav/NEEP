@@ -85,7 +85,7 @@ function inquiryFixture(overrides: Record<string, unknown> = {}) {
     venueName: "Saint Clements Castle",
     eventTown: "Portland",
     budgetBand: "25k_50k",
-    servicesNeeded: ["full_planning", "guest_transport_coordination"],
+    servicesNeeded: ["venue_sourcing", "guest_transport_coordination"],
     message: "Planning a September wedding.",
     ...overrides,
   } as Parameters<typeof createInquiry>[0];
