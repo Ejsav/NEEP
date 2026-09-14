@@ -88,6 +88,39 @@ export const draftStatusEnum = pgEnum("draft_status", [
   "abandoned",
 ]);
 
+export const venueRegionEnum = pgEnum("venue_region", [
+  "shoreline",
+  "river_valley",
+  "hartford",
+  "litchfield",
+  "fairfield",
+]);
+
+export const vendorPolicyEnum = pgEnum("vendor_policy", [
+  "open",
+  "preferred",
+  "exclusive",
+]);
+
+/**
+ * Where a fact came from, in the order we trust them. A competitor's page, a
+ * forum post, and an inference from a photograph are deliberately absent -
+ * those are not sources. See docs/VENUE_DATABASE.md.
+ */
+export const sourceTypeEnum = pgEnum("source_type", [
+  "venue_site",
+  "state_agency",
+  "municipal_code",
+  "maps",
+  "direct_confirmation",
+]);
+
+export const confidenceEnum = pgEnum("confidence", [
+  "verified",
+  "reported",
+  "unknown",
+]);
+
 export const funnelActionEnum = pgEnum("funnel_action", [
   "enter",
   "exit",
@@ -408,6 +441,141 @@ export const funnelEvents = pgTable(
   ],
 );
 
+/* ------------------------------------------------------------------ venues */
+
+/**
+ * The Connecticut venue database.
+ *
+ * EVERY FIELD IS NULLABLE, AND THAT IS THE DESIGN. A field without a source in
+ * venue_field_sources is not a field, it is a guess, and it renders as "not
+ * confirmed" rather than as a number. An incomplete honest record beats a
+ * complete fabricated one - that is the entire point of this table.
+ *
+ * Nothing here publishes until it clears the gate in lib/venues/gate.ts.
+ */
+export const venues = pgTable(
+  "venues",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    town: text("town").notNull(),
+    region: venueRegionEnum("region").notNull(),
+    venueType: text("venue_type"),
+    officialUrl: text("official_url"),
+    latitude: text("latitude"),
+    longitude: text("longitude"),
+
+    /* Capacity, by configuration rather than a single misleading number. */
+    capacitySeated: integer("capacity_seated"),
+    capacityStanding: integer("capacity_standing"),
+    capacityCeremony: integer("capacity_ceremony"),
+    capacityReception: integer("capacity_reception"),
+    /** [{ room, configuration, count }] - the differentiator over aggregators. */
+    capacityByRoom: jsonb("capacity_by_room").$type<
+      { room: string; configuration: string; count: number }[]
+    >(),
+
+    /* Setting. */
+    indoor: boolean("indoor"),
+    outdoor: boolean("outdoor"),
+    tentedAllowed: boolean("tented_allowed"),
+    tentRestrictions: text("tent_restrictions"),
+
+    /* Parking and access - the highest-value cluster. */
+    parkingSpaces: integer("parking_spaces"),
+    parkingNotes: text("parking_notes"),
+    valetAvailable: boolean("valet_available"),
+    /**
+     * Describes the VENUE's logistics, never a service we offer. Allowed:
+     * "staging area accommodates two 56-passenger coaches". Forbidden: anything
+     * implying we run the shuttle. See CLAUDE.md.
+     */
+    shuttleStagingNotes: text("shuttle_staging_notes"),
+    loadInNotes: text("load_in_notes"),
+    loadInEarliestTime: text("load_in_earliest_time"),
+    dropOffNotes: text("drop_off_notes"),
+
+    /* Timing. The venue-policy vs municipal-ordinance distinction is the one
+       customers most need and least often get. */
+    curfewTime: text("curfew_time"),
+    curfewSource: text("curfew_source"),
+    amplifiedMusicCutoff: text("amplified_music_cutoff"),
+    noiseOrdinanceReference: text("noise_ordinance_reference"),
+
+    /* Vendors. Mandatory vs merely recommended is the question that costs money. */
+    vendorPolicy: vendorPolicyEnum("vendor_policy"),
+    preferredVendorRequired: boolean("preferred_vendor_required"),
+    inHouseCatering: boolean("in_house_catering"),
+    outsideCateringAllowed: boolean("outside_catering_allowed"),
+    barPolicy: text("bar_policy"),
+
+    /* Guest logistics. */
+    nearestHotels: jsonb("nearest_hotels").$type<
+      { name: string; distanceMiles: number; url?: string }[]
+    >(),
+    hotelBlockNotes: text("hotel_block_notes"),
+    driveTimes: jsonb("drive_times").$type<Record<string, string>>(),
+
+    /* Accessibility. */
+    accessibilityNotes: text("accessibility_notes"),
+    stepFreeAccess: boolean("step_free_access"),
+    accessibleRestrooms: boolean("accessible_restrooms"),
+
+    /* Seasonal. */
+    seasonalAvailabilityNotes: text("seasonal_availability_notes"),
+    peakSeasonMonths: jsonb("peak_season_months").$type<string[]>(),
+    offSeasonMonths: jsonb("off_season_months").$type<string[]>(),
+
+    /**
+     * Our own writing about this venue: what the facts above mean in practice.
+     * The gate requires real length here, because a record that is only a table
+     * of numbers is a directory listing, not a page worth indexing.
+     */
+    narrative: text("narrative"),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("venues_slug_key").on(t.slug),
+    index("venues_region_idx").on(t.region),
+    index("venues_town_idx").on(t.town),
+  ],
+);
+
+/**
+ * Provenance, one row per fact.
+ *
+ * These facts decay - curfews change, vendor lists change, parking gets
+ * reconfigured - so verifiedAt is not optional bookkeeping. Anything older than
+ * twelve months renders as "last confirmed [date]" rather than as current.
+ */
+export const venueFieldSources = pgTable(
+  "venue_field_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    /** Column name on `venues` that this row vouches for. */
+    fieldName: text("field_name").notNull(),
+    sourceType: sourceTypeEnum("source_type").notNull(),
+    sourceUrl: text("source_url"),
+    verifiedAt: date("verified_at").notNull(),
+    confidence: confidenceEnum("confidence").notNull().default("reported"),
+    note: text("note"),
+  },
+  (t) => [
+    uniqueIndex("venue_field_sources_field_key").on(t.venueId, t.fieldName),
+    index("venue_field_sources_venue_idx").on(t.venueId),
+  ],
+);
+
 /* ------------------------------------------------------------ rate limits */
 
 /**
@@ -436,3 +604,7 @@ export type NotificationRecord = typeof notifications.$inferSelect;
 export type InquiryDraft = typeof inquiryDrafts.$inferSelect;
 export type NewInquiryDraft = typeof inquiryDrafts.$inferInsert;
 export type FunnelEvent = typeof funnelEvents.$inferSelect;
+export type Venue = typeof venues.$inferSelect;
+export type NewVenue = typeof venues.$inferInsert;
+export type VenueFieldSource = typeof venueFieldSources.$inferSelect;
+export type NewVenueFieldSource = typeof venueFieldSources.$inferInsert;

@@ -15,6 +15,13 @@
       "when": 1789342473979,
       "tag": "0001_familiar_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789346714684,
+      "tag": "0002_spooky_night_thrasher",
+      "breakpoints": true
     }
   ]
 }
