@@ -19,74 +19,95 @@ import { join } from "node:path";
  * Imagery here is atmosphere; it is never evidence. See docs/DECISIONS.md D-019.
  */
 
-export type ImageSlot = {
-  /** Path under public/, and the filename to commit. */
-  src: string;
+export type ImageSlotDefinition = {
+  /** Filename WITHOUT extension. Any supported format is accepted. */
+  basename: string;
   alt: string;
   width: number;
   height: number;
   orientation: "landscape" | "portrait";
 };
 
+export type ImageSlot = ImageSlotDefinition & {
+  /** Resolved path under public/, including the extension found on disk. */
+  src: string;
+};
+
+/**
+ * Accepted formats, most efficient first.
+ *
+ * Extension-agnostic on purpose. Requiring an exact ".jpg" turned "add a
+ * photograph" into "add a photograph and also know which of five extensions the
+ * code happens to expect", which is a pointless way to lose twenty minutes.
+ * Drop in a .png or a .webp and it just works.
+ */
+const EXTENSIONS = ["avif", "webp", "jpg", "jpeg", "png"] as const;
+
 export const IMAGE_SLOTS = {
   "hero-home": {
-    src: "/images/hero-home.jpg",
+    basename: "hero-home",
     alt: "A waterfront function room set for dinner before guests arrive: round tables laid with white linen, glassware and low white floral arrangements, low sun coming off the water through tall windows.",
     width: 2560,
     height: 1440,
     orientation: "landscape",
   },
   "hero-weddings": {
-    src: "/images/hero-weddings.jpg",
+    basename: "hero-weddings",
     alt: "A single place setting on a linen tablecloth: stacked ceramic plates, a folded napkin, a printed menu card, polished cutlery and a wine glass, with a white and green arrangement behind.",
     width: 1132,
     height: 1456,
     orientation: "portrait",
   },
   "hero-corporate-events": {
-    src: "/images/hero-corporate-events.jpg",
+    basename: "hero-corporate-events",
     alt: "An empty function room set in rows for a presentation: dark stacking chairs facing a blank projection screen and a lectern, daylight from tall windows along one wall.",
     width: 1800,
     height: 1200,
     orientation: "landscape",
   },
   "hero-private-events": {
-    src: "/images/hero-private-events.jpg",
+    basename: "hero-private-events",
     alt: "A long outdoor table laid for a private dinner at golden hour: mismatched wooden chairs, linen runners, candles, glassware and shared serving bowls down the centre.",
     width: 1800,
     height: 1200,
     orientation: "landscape",
   },
   "hero-venue-vendor-coordination": {
-    src: "/images/hero-venue-vendor-coordination.jpg",
+    basename: "hero-venue-vendor-coordination",
     alt: "A printed run-of-show and a venue floor plan laid out on a road case during load-in, with a two-way radio beside them and a tented terrace lit for the evening in the background.",
     width: 1800,
     height: 1200,
     orientation: "landscape",
   },
   "about-connecticut": {
-    src: "/images/about-connecticut.jpg",
+    basename: "about-connecticut",
     alt: "A quiet Connecticut landscape out of season: bare trees and low winter light over open ground.",
     width: 1600,
     height: 1200,
     orientation: "landscape",
   },
-} as const satisfies Record<string, ImageSlot>;
+} as const satisfies Record<string, ImageSlotDefinition>;
 
 export type ImageSlotName = keyof typeof IMAGE_SLOTS;
 
 /**
- * Whether the file behind a slot actually exists.
+ * Resolves a slot against whatever is actually on disk.
  *
  * Checked on disk rather than tracked in a list, so adding a photograph is a
- * one-file commit. Server-side only, and evaluated at build time for the static
- * routes, so it costs nothing per request.
+ * one-file commit with no code change. Server-side only, and evaluated at build
+ * time for the static routes, so it costs nothing per request.
  */
-export function imagePresent(name: ImageSlotName): boolean {
-  const slot = IMAGE_SLOTS[name];
-  return existsSync(join(process.cwd(), "public", slot.src.replace(/^\//, "")));
+export function imageSlot(name: ImageSlotName): ImageSlot | null {
+  const definition = IMAGE_SLOTS[name];
+  for (const extension of EXTENSIONS) {
+    const relative = `images/${definition.basename}.${extension}`;
+    if (existsSync(join(process.cwd(), "public", relative))) {
+      return { ...definition, src: `/${relative}` };
+    }
+  }
+  return null;
 }
 
-export function imageSlot(name: ImageSlotName): ImageSlot | null {
-  return imagePresent(name) ? IMAGE_SLOTS[name] : null;
+export function imagePresent(name: ImageSlotName): boolean {
+  return imageSlot(name) !== null;
 }

@@ -7,14 +7,17 @@ and dimensions, and a slot renders only when its file is present.
 A missing file is not a broken image. The pages were designed type-first, so an
 absent slot degrades to the original treatment.
 
-| Filename | Where it appears | Size | Orientation |
+**Any format works** — `.jpg`, `.jpeg`, `.png`, `.webp` or `.avif`. Only the
+name before the extension has to match.
+
+| Name | Where it appears | Size | Orientation |
 | --- | --- | --- | --- |
-| `hero-home.jpg` | Homepage, full-bleed under the hero copy | 2560 × 1440 | landscape |
-| `hero-weddings.jpg` | `/weddings` hero, right column | 1132 × 1456 | portrait |
-| `hero-corporate-events.jpg` | `/corporate-events` hero, right column | 1800 × 1200 | landscape |
-| `hero-private-events.jpg` | `/private-events` hero, right column | 1800 × 1200 | landscape |
-| `hero-venue-vendor-coordination.jpg` | `/venue-vendor-coordination` hero, right column | 1800 × 1200 | landscape |
-| `about-connecticut.jpg` | `/about` | 1600 × 1200 | landscape |
+| `hero-home` | Homepage, full-bleed under the hero copy | 2560 × 1440 | landscape |
+| `hero-weddings` | `/weddings` hero, right column | 1132 × 1456 | portrait |
+| `hero-corporate-events` | `/corporate-events` hero, right column | 1800 × 1200 | landscape |
+| `hero-private-events` | `/private-events` hero, right column | 1800 × 1200 | landscape |
+| `hero-venue-vendor-coordination` | `/venue-vendor-coordination` hero, right column | 1800 × 1200 | landscape |
+| `about-connecticut` | `/about` | 1600 × 1200 | landscape |
 
 If the dimensions of a file differ from the table, update the slot in
 `src/lib/images.ts` to match. The numbers there are what the browser uses to
