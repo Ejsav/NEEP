@@ -20,8 +20,14 @@ name before the extension has to match.
 | `about-connecticut` | `/about` | 1600 × 1200 | landscape |
 
 If the dimensions of a file differ from the table, update the slot in
-`src/lib/images.ts` to match. The numbers there are what the browser uses to
-reserve space before the bytes arrive, and wrong ones cause layout shift.
+`src/lib/images.ts` to match. Two things there matter: the numbers are what the
+browser uses to reserve space before the bytes arrive, and wrong ones cause
+layout shift; and `orientation` decides the shape the image is displayed at, so
+a landscape file declared portrait will be cropped hard down its middle.
+
+The four vertical heroes all sit in the same column, so landscape and portrait
+sources are both fine — declare which one you supplied and the layout follows
+it.
 
 ## Before committing an image
 

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { imageSlot, type ImageSlotName } from "@/lib/images";
+import { IMAGE_SLOTS, imageSlot, type ImageSlotName } from "@/lib/images";
 
 /**
  * Renders a declared image slot, or nothing at all.
@@ -42,4 +42,19 @@ export function SlotImage({
 /** True when a slot has a file, for pages that lay out differently with one. */
 export function hasSlotImage(name: ImageSlotName): boolean {
   return imageSlot(name) !== null;
+}
+
+/**
+ * The aspect ratio a slot should be displayed at.
+ *
+ * A layout that forces one ratio on every slot crops whatever does not match
+ * it, and cropping a 3:2 photograph to 5:6 throws away two thirds of the frame.
+ * The manifest already records whether each slot is portrait or landscape, so
+ * the layout follows the source rather than the source having to follow the
+ * layout.
+ */
+export function slotAspectClass(name: ImageSlotName): string {
+  return IMAGE_SLOTS[name].orientation === "portrait"
+    ? "aspect-[4/3] lg:aspect-[4/5]"
+    : "aspect-[4/3]";
 }

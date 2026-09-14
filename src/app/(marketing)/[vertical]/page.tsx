@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { StickyCta } from "@/components/site/sticky-cta";
-import { SlotImage, hasSlotImage } from "@/components/site/slot-image";
+import { SlotImage, hasSlotImage, slotAspectClass } from "@/components/site/slot-image";
 import type { ImageSlotName } from "@/lib/images";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
 import { SectionHeader } from "@/components/sections/section-header";
@@ -147,7 +147,7 @@ export default async function VerticalPage({
                 name={heroSlot}
                 priority
                 sizes="(min-width: 1024px) 40vw, 100vw"
-                className="aspect-[4/3] w-full rounded-xl object-cover lg:aspect-[5/6]"
+                className={`w-full rounded-xl object-cover ${slotAspectClass(heroSlot)}`}
               />
             ) : (
               <FactList>
