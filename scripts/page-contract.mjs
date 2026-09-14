@@ -84,6 +84,90 @@ async function routesFromSitemap() {
   return urls.map((url) => new URL(url).pathname);
 }
 
+
+/**
+ * Computed text contrast for every element whose own text is a leaf.
+ *
+ * Run against both colour schemes: a palette can satisfy AA in one and fail in
+ * the other, and only the computed values know which. The background is the
+ * nearest ancestor that actually paints one, because a transparent element
+ * inherits whatever is behind it rather than the body.
+ */
+async function contrastProblems(page) {
+  return page.evaluate(() => {
+    const found = [];
+    const describe = (el) =>
+      `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${
+        el.className && typeof el.className === "string"
+          ? `.${el.className.split(/\s+/).filter(Boolean).slice(0, 2).join(".")}`
+          : ""
+      }`;
+    const visible = (el) => {
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    // 8. Text contrast. The background is the nearest ancestor that paints one.
+      const luminance = (rgb) => {
+        const channel = (v) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
+      };
+      const parse = (value) => {
+        const m = value.match(/rgba?\(([^)]+)\)/);
+        if (!m) return null;
+        const parts = m[1].split(",").map((n) => parseFloat(n));
+        if (parts.length >= 4 && parts[3] === 0) return null; // transparent
+        return [parts[0], parts[1], parts[2]];
+      };
+      const backgroundOf = (el) => {
+        let node = el;
+        while (node && node !== document.documentElement) {
+          const rgb = parse(getComputedStyle(node).backgroundColor);
+          if (rgb) return rgb;
+          node = node.parentElement;
+        }
+        return parse(getComputedStyle(document.body).backgroundColor) ?? [255, 255, 255];
+      };
+
+      for (const el of document.querySelectorAll(
+        "p, li, span, a, h1, h2, h3, h4, dt, dd, label, legend, button, strong, em, code, time",
+      )) {
+        if (!visible(el)) continue;
+        // Only elements whose own text is the leaf, so a wrapper is not measured twice.
+        const ownText = [...el.childNodes]
+          .filter((n) => n.nodeType === Node.TEXT_NODE)
+          .map((n) => n.textContent.trim())
+          .join("");
+        if (ownText.length < 3) continue;
+
+        const style = getComputedStyle(el);
+        const fg = parse(style.color);
+        if (!fg) continue;
+        const bg = backgroundOf(el);
+        const l1 = luminance(fg);
+        const l2 = luminance(bg);
+        const ratio =
+          (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+
+        const size = parseFloat(style.fontSize);
+        const weight = Number(style.fontWeight) || 400;
+        const large = size >= 24 || (size >= 18.66 && weight >= 700);
+        const required = large ? 3 : 4.5;
+
+        if (ratio < required) {
+          found.push(
+            `${describe(el)} ${ratio.toFixed(2)}:1 (needs ${required}) "${ownText.slice(0, 28)}"`,
+          );
+        }
+      }
+    return found;
+  });
+}
+
 async function checkRoute(browser, route) {
   currentRoute = route;
   const context = await browser.newContext({
@@ -186,6 +270,133 @@ async function checkRoute(browser, route) {
   const lang = await page.getAttribute("html", "lang");
   check("html lang set", Boolean(lang), lang ?? "missing");
 
+  // --- Accessibility -------------------------------------------------------
+  // Deterministic DOM checks rather than a bundled auditor: this environment
+  // cannot fetch axe at runtime, and the failures worth catching on a site of
+  // this shape - an unnamed control, a label pointing at nothing, an aria
+  // reference to a missing id - are all decidable from the tree itself.
+  const a11y = await page.evaluate(() => {
+    const problems = {
+      unnamedControls: [],
+      unlabelledFields: [],
+      danglingAria: [],
+      duplicateIds: [],
+      positiveTabindex: [],
+      deadLinks: [],
+      smallTargets: [],
+    };
+
+    const describe = (el) =>
+      `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${
+        el.className && typeof el.className === "string"
+          ? `.${el.className.split(/\s+/).filter(Boolean).slice(0, 2).join(".")}`
+          : ""
+      }`;
+
+    const visible = (el) => {
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+
+    // 1. Every interactive control exposes a name.
+    for (const el of document.querySelectorAll("a[href], button")) {
+      if (!visible(el)) continue;
+      const name = (
+        el.getAttribute("aria-label") ||
+        el.textContent ||
+        el.getAttribute("title") ||
+        el.querySelector("img")?.getAttribute("alt") ||
+        ""
+      ).trim();
+      if (name === "") problems.unnamedControls.push(describe(el));
+    }
+
+    // 2. Every form control is labelled.
+    for (const el of document.querySelectorAll("input, select, textarea")) {
+      if (el.type === "hidden") continue;
+      const labelled =
+        el.labels?.length > 0 ||
+        el.getAttribute("aria-label") ||
+        el.getAttribute("aria-labelledby") ||
+        el.closest("label") ||
+        (el.closest("fieldset")?.querySelector("legend")?.textContent ?? "").trim() !== "";
+      if (!labelled) problems.unlabelledFields.push(describe(el));
+    }
+
+    // 3. aria-describedby / aria-labelledby must resolve.
+    for (const attribute of ["aria-describedby", "aria-labelledby", "aria-controls"]) {
+      for (const el of document.querySelectorAll(`[${attribute}]`)) {
+        for (const id of el.getAttribute(attribute).split(/\s+/).filter(Boolean)) {
+          if (!document.getElementById(id)) {
+            problems.danglingAria.push(`${describe(el)} ${attribute}="${id}"`);
+          }
+        }
+      }
+    }
+
+    // 4. Duplicate ids break every one of those references.
+    const seen = new Set();
+    for (const el of document.querySelectorAll("[id]")) {
+      if (seen.has(el.id)) problems.duplicateIds.push(el.id);
+      seen.add(el.id);
+    }
+
+    // 5. A positive tabindex reorders the whole page for keyboard users.
+    for (const el of document.querySelectorAll("[tabindex]")) {
+      if (Number(el.getAttribute("tabindex")) > 0) problems.positiveTabindex.push(describe(el));
+    }
+
+    // 6. Links that go nowhere.
+    for (const el of document.querySelectorAll("a")) {
+      const href = el.getAttribute("href");
+      if (href === null || href.trim() === "" || href === "#") {
+        problems.deadLinks.push(describe(el));
+      }
+    }
+
+    // 7. WCAG 2.2 target size (minimum): 24x24 CSS px, unless spacing exempts it.
+    //    Checked only on the controls a visitor actually operates.
+    for (const el of document.querySelectorAll("a[href], button, input, select, textarea")) {
+      if (!visible(el)) continue;
+      if (el.closest("p, li, dd, dt, nav")) continue; // inline links are exempt
+      // A control wrapped in a label is not the target - the label is, and the
+      // whole of it is clickable. Measuring the 20px radio inside a 90px card
+      // reports a failure that does not exist for anyone using the page.
+      const label = el.closest("label");
+      const rect = (label ?? el).getBoundingClientRect();
+      if (rect.height < 24 || rect.width < 24) {
+        problems.smallTargets.push(`${describe(el)} ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+      }
+    }
+
+    return problems;
+  });
+
+  check("every link and button has an accessible name", a11y.unnamedControls.length === 0, a11y.unnamedControls.slice(0, 3).join(", "));
+  check("every form control is labelled", a11y.unlabelledFields.length === 0, a11y.unlabelledFields.slice(0, 3).join(", "));
+  check("every aria reference resolves", a11y.danglingAria.length === 0, a11y.danglingAria.slice(0, 3).join(", "));
+  check("no duplicate ids", a11y.duplicateIds.length === 0, a11y.duplicateIds.slice(0, 3).join(", "));
+  check("no positive tabindex", a11y.positiveTabindex.length === 0, a11y.positiveTabindex.slice(0, 3).join(", "));
+  check("no dead links", a11y.deadLinks.length === 0, a11y.deadLinks.slice(0, 3).join(", "));
+  check("targets are at least 24x24", a11y.smallTargets.length === 0, a11y.smallTargets.slice(0, 3).join(", "));
+
+  const contrast = await contrastProblems(page);
+  check("text meets WCAG AA contrast", contrast.length === 0, contrast.slice(0, 4).join(" | "));
+
+  const landmarks = await page.evaluate(() => ({
+    mains: document.querySelectorAll("main, [role=main]").length,
+    skip: (() => {
+      const link = document.querySelector("a.skip-link, a[href^='#main']");
+      if (!link) return "missing";
+      const target = document.querySelector(link.getAttribute("href"));
+      return target ? "ok" : "points at nothing";
+    })(),
+  }));
+  check("exactly one main landmark", landmarks.mains === 1, `found ${landmarks.mains}`);
+  check("skip link resolves to the main landmark", landmarks.skip === "ok", landmarks.skip);
+
   // --- Palette ------------------------------------------------------------
   // Tailwind v4 resolves `@theme` at build time and flattens it to the top
   // level, so a `@theme` written inside `@media (prefers-color-scheme: dark)`
@@ -227,6 +438,15 @@ async function checkDarkScheme(browser) {
     background === DARK_PAPER,
     `body background is ${background}, expected ${DARK_PAPER}`,
   );
+
+  for (const route of ["/", "/plan", "/pricing"]) {
+    currentRoute = `${route} (dark scheme)`;
+    await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForLoadState("load");
+    const contrast = await contrastProblems(page);
+    check("text meets WCAG AA contrast", contrast.length === 0, contrast.slice(0, 4).join(" | "));
+  }
+
   await context.close();
 }
 

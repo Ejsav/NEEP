@@ -57,12 +57,28 @@ export default function AccessibilityPage() {
           <li>Every page has exactly one main heading, and heading levels never skip.</li>
           <li>Every form control has a real label, not a placeholder standing in for one.</li>
           <li>
+            Every link and button exposes a name, every ARIA reference points at
+            an element that exists, and no two elements share an id.
+          </li>
+          <li>
+            Text contrast is measured against the colour actually painted behind
+            it, in both the light and the dark palette, and must reach AA.
+          </li>
+          <li>
+            Every interactive target is at least 24 by 24 pixels, which is the
+            WCAG 2.2 minimum.
+          </li>
+          <li>
             Error messages are tied to their field and announced by screen
             readers when they appear.
           </li>
           <li>
             The whole inquiry flow can be completed with a keyboard alone, and
             focus is always visibly indicated.
+          </li>
+          <li>
+            Each page has exactly one main landmark, and the skip link actually
+            resolves to it.
           </li>
           <li>No page scrolls sideways at 375 pixels wide.</li>
           <li>Every image carries alternative text.</li>
@@ -71,16 +87,16 @@ export default function AccessibilityPage() {
 
         <h2 id="other-things-we-have-done-deliberately">Other things we have done deliberately</h2>
         <ul>
-          <li>
-            Colour is never the only way meaning is carried, and text contrast
-            targets AA at minimum.
-          </li>
+          <li>Colour is never the only way meaning is carried.</li>
           <li>
             If your system asks for reduced motion, animation is removed rather
             than merely shortened.
           </li>
           <li>
-            Touch targets are at least 44 pixels, which is comfortable on a phone.
+            Every primary action — buttons, the planner controls, the mobile
+            action bar — is at least 44 pixels tall, which is comfortable on a
+            phone and well above the 24-pixel minimum the build enforces
+            everywhere else.
           </li>
           <li>
             Steps of the planner that are not currently in view are made properly

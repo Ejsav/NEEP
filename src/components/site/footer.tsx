@@ -102,17 +102,31 @@ export function SiteFooter() {
             licensed and insured third-party carriers. Your transportation
             contract is with the carrier.
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Link href="/privacy" className="hover:text-accent">
+          {/*
+            WCAG 2.2 SC 2.5.8: these are standalone targets rather than links
+            inside a sentence, so they need 24x24. At the micro size the text is
+            19px tall, which is why the hit area is set explicitly here.
+          */}
+          <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-6 gap-y-1">
+            <Link
+              href="/privacy"
+              className="inline-flex min-h-6 items-center hover:text-accent"
+            >
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-accent">
+            <Link
+              href="/terms"
+              className="inline-flex min-h-6 items-center hover:text-accent"
+            >
               Terms
             </Link>
-            <Link href="/accessibility" className="hover:text-accent">
+            <Link
+              href="/accessibility"
+              className="inline-flex min-h-6 items-center hover:text-accent"
+            >
               Accessibility
             </Link>
-          </div>
+          </nav>
           <p>
             &copy; {year} {siteConfig.legalName}. All rights reserved.
           </p>

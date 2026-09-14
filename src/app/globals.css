@@ -31,7 +31,11 @@
 
   --color-ink: #1c1917;
   --color-ink-muted: #57534e;
-  --color-ink-subtle: #78716c;
+  /* #78716c was 4.49:1 on paper and 4.11:1 on paper-sunk - under AA on both,
+     and it carries every eyebrow, breadcrumb and caption on the site. This
+     clears 5.1:1 on paper and 4.7:1 on paper-sunk without changing the
+     temperature of the grey. */
+  --color-ink-subtle: #6f6863;
   --color-ink-inverse: #faf7f2;
 
   --color-line: #e3dbcd;
