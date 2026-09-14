@@ -91,37 +91,51 @@ export default async function RegionGuidePage({
               { href: `/guides/${region.slug}`, label: region.short },
             ]}
           />
-          <div className="mt-6 flex max-w-measure flex-col gap-4">
-            <span className="eyebrow">Regional guide</span>
-            <h1 className="text-display-1 font-display text-ink">{region.name}</h1>
-            <p className="text-body-lg text-ink-muted">{region.blurb}</p>
+          <span className="eyebrow mt-6 block">Regional guide</span>
+          <h1 className="mt-4 max-w-[19ch] text-display-1 font-display text-ink">
+            {region.name}
+          </h1>
+          {/*
+            Same masthead as the rest of the site: the standfirst on the left,
+            and the reason this guide has nothing in it on the right, where a
+            visitor reads it before scrolling rather than after.
+          */}
+          <div
+            className={
+              venues.length === 0
+                ? "mt-10 grid gap-10 border-t border-line pt-8 sm:mt-12 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16"
+                : "mt-6"
+            }
+          >
+            <p className="max-w-measure text-body-lg text-ink-muted">{region.blurb}</p>
+            {venues.length === 0 ? (
+              <div className="flex h-fit flex-col gap-3 rounded-xl border border-line bg-paper-raised p-6">
+                <h2 className="font-display text-heading-2 text-ink">
+                  Nothing published for {region.short} yet.
+                </h2>
+                <p className="text-small text-ink-muted">
+                  This guide publishes when there are venues behind it that have
+                  been properly checked — capacity by configuration, the real
+                  parking count, whose curfew applies, and what the vendor policy
+                  actually requires, each with a source and a date.
+                </p>
+                <p className="text-small text-ink-muted">
+                  If you are looking at somewhere in {region.short} now, name it
+                  in the planner and we will tell you what we know.
+                </p>
+                <div className="mt-1">
+                  <ButtonLink href="/plan" variant="secondary">
+                    Ask about a venue
+                  </ButtonLink>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-content px-5 py-12 sm:px-8 sm:py-16">
-        {venues.length === 0 ? (
-          <div className="flex max-w-measure flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6 sm:p-8">
-            <h2 className="font-display text-heading-1 text-ink">
-              No records published for {region.short} yet.
-            </h2>
-            <p className="text-body text-ink-muted">
-              This guide publishes when there are venues behind it that have been
-              properly checked — capacity by configuration, the real parking
-              count, whose curfew applies, and what the vendor policy actually
-              requires, each with a source and a date.
-            </p>
-            <p className="text-small text-ink-muted">
-              If you are looking at somewhere in {region.short} now, name it in
-              the planner and we will tell you what we know.
-            </p>
-            <div className="mt-1">
-              <ButtonLink href="/plan" size="lg">
-                Ask about a venue
-              </ButtonLink>
-            </div>
-          </div>
-        ) : (
+        {venues.length > 0 ? (
           <ul className="grid gap-4 sm:grid-cols-2">
             {venues.map(({ venue }) => (
               <li key={venue.id}>
@@ -137,7 +151,7 @@ export default async function RegionGuidePage({
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
 
         <p className="mt-10 max-w-measure text-small text-ink-muted">
           Planning a wedding in {region.short}?{" "}
