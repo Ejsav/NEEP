@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal";
+import { StickyCta } from "@/components/site/sticky-cta";
 import { responseSlaHours } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
-import { EVENT_TYPES } from "@/lib/domain/inquiry-options";
+import { VERTICALS } from "@/lib/domain/verticals";
 
 export const metadata: Metadata = {
   // `absolute` because the root layout applies a `%s | brand` template. Without
-  // it a title that already names the brand gets it appended a second time,
-  // which produced a 99-character title Google would truncate.
+  // it a title that already names the brand gets it appended a second time.
   title: {
     absolute: `Connecticut Event Planning | ${siteConfig.name}`,
   },
@@ -19,14 +20,15 @@ export const metadata: Metadata = {
 /**
  * Homepage.
  *
- * Deliberately narrow for launch. It exists to explain what the company does
- * and route to the inquiry form. It makes no claim about past events, reviews,
- * customers, awards or partnerships, because there are none yet - and an honest
- * empty state converts better than an obvious lie. See docs/TRUST_STRATEGY.md.
+ * Every section here either explains, proves, reassures, or asks for the next
+ * step. What is deliberately absent is as considered as what is present: no
+ * logo wall, no counter, no testimonial strip, no "trusted by". This company
+ * has no customers yet, and a visitor can tell the difference between an empty
+ * page and a dishonest one. See docs/TRUST_STRATEGY.md.
  *
  * Structured data is Organization only: no publishable street address means no
  * LocalBusiness, and with zero reviews there is no compliant construction of
- * AggregateRating. See docs/SEO_STRATEGY.md.
+ * AggregateRating. See docs/DECISIONS.md D-012.
  */
 export default function HomePage() {
   const slaHours = responseSlaHours();
@@ -42,12 +44,8 @@ export default function HomePage() {
       "@type": "State",
       name: siteConfig.serviceArea.state,
     },
-    ...(siteConfig.contact.email
-      ? { email: siteConfig.contact.email }
-      : {}),
-    ...(siteConfig.contact.phone
-      ? { telephone: siteConfig.contact.phone }
-      : {}),
+    ...(siteConfig.contact.email ? { email: siteConfig.contact.email } : {}),
+    ...(siteConfig.contact.phone ? { telephone: siteConfig.contact.phone } : {}),
   };
 
   return (
@@ -61,157 +59,177 @@ export default function HomePage() {
       <section className="border-b border-line">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-24">
           <div className="flex max-w-3xl flex-col gap-6">
-            <span className="eyebrow">
-              {siteConfig.serviceArea.description}
-            </span>
+            <span className="eyebrow">{siteConfig.serviceArea.description}</span>
             <h1 className="text-display-1 font-display text-ink">
               Planning an event shouldn&apos;t mean managing twelve strangers.
             </h1>
             <p className="max-w-measure text-body-lg text-ink-muted">
               {siteConfig.name} is one place to start. We find the venue, source
-              and vet the vendors, hold the timeline, and run the logistics —
-              so you make decisions instead of chasing quotes.
+              and vet the vendors, hold the timeline, and run the logistics — so
+              you make decisions instead of chasing quotes.
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
               <ButtonLink href="/plan" size="lg">
                 Start planning
               </ButtonLink>
               <p className="text-small text-ink-muted">
-                A real reply within {slaHours} hours.
+                Five questions, about ninety seconds. A real reply within{" "}
+                {slaHours} hours.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --------------------------------------------------------- What we do */}
-      <section
-        aria-labelledby="what-we-do"
-        className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20"
-      >
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow text-ink-subtle">What we do</span>
-          <h2 id="what-we-do" className="max-w-measure text-display-2 font-display text-ink">
-            Four kinds of event. One point of contact.
-          </h2>
-        </div>
+      {/* --------------------------------------------------- The four things */}
+      <section className="border-b border-line bg-paper-sunk">
+        <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
+          <Reveal as="header" className="flex max-w-measure flex-col gap-3">
+            <h2 className="text-display-2 font-display text-ink">
+              Four things, done properly.
+            </h2>
+            <p className="text-body-lg text-ink-muted">
+              We do not do everything. These are the four we do, and the list is
+              not going to grow to win a booking.
+            </p>
+          </Reveal>
 
-        <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2">
-          {EVENT_TYPES.map((type) => (
-            <li key={type.value} className="bg-paper-raised p-6 sm:p-8">
-              <h3 className="font-display text-heading-2 text-ink">
-                {type.label}
-              </h3>
-              <p className="mt-2 text-small text-ink-muted">{type.blurb}</p>
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+            {VERTICALS.map((vertical, index) => (
+              <Reveal
+                as="li"
+                key={vertical.slug}
+                delayMs={index * 60}
+                className="group"
+              >
+                <Link
+                  href={`/${vertical.slug}`}
+                  className="flex h-full flex-col gap-2 rounded-xl border border-line bg-paper-raised p-6 transition duration-150 ease-out-quiet hover:-translate-y-px hover:border-line-strong hover:shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  <h3 className="font-display text-heading-2 text-ink">
+                    {vertical.title}
+                  </h3>
+                  <p className="text-small text-ink-muted">{vertical.homeBlurb}</p>
+                  <span className="mt-auto pt-3 text-small font-medium text-ink group-hover:text-accent">
+                    {vertical.homeLink} &rarr;
+                  </span>
+                </Link>
+              </Reveal>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      {/* -------------------------------------------------------- How it works */}
-      <section
-        aria-labelledby="how-it-works"
-        className="border-y border-line bg-paper-sunk"
-      >
+      {/* ---------------------------------------------------- How it works */}
+      <section className="border-b border-line">
         <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow text-ink-subtle">How it works</span>
-            <h2
-              id="how-it-works"
-              className="max-w-measure text-display-2 font-display text-ink"
-            >
-              What actually happens after you hit send.
+          <Reveal as="header" className="flex max-w-measure flex-col gap-3">
+            <h2 className="text-display-2 font-display text-ink">
+              How it works.
             </h2>
-            <p className="max-w-measure text-body-lg text-ink-muted">
-              We&apos;re new. We don&apos;t have a wall of reviews to point at
-              yet, so instead here is exactly how we work — and you can hold us
-              to it.
+            <p className="text-body-lg text-ink-muted">
+              Three steps. No discovery call you have to sit through before
+              anyone tells you anything useful.
             </p>
-          </div>
+          </Reveal>
 
-          <ol className="mt-10 grid gap-8 sm:grid-cols-3">
-            <Step n="01" title={`We read it within ${slaHours} hours`}>
-              A person, not a router. Every inquiry gets a response deadline
-              the moment it lands, and anything past due gets flagged
-              internally.
+          <ol className="mt-10 grid gap-6 sm:grid-cols-3">
+            <Step n="01" title="Tell us what you're planning">
+              Five short questions. Event type, date, guest count, where you are
+              with a venue, and what you want us to run. We save your answers as
+              you go.
             </Step>
-            <Step n="02" title="We come back with specifics">
-              Either real answers to what you asked, or the exact questions we
-              need answered to be useful. Never a brochure.
+            <Step n="02" title="We come back with a real answer">
+              Within {slaHours} hours: what we&apos;d do, roughly what it takes,
+              and the questions we&apos;d need answered next. Written by a
+              person who read your form.
             </Step>
-            <Step n="03" title="We tell you if we're not a fit">
-              If your event is outside what we can do well, we say so and point
-              you somewhere better. That costs us a booking and saves you a
-              month.
+            <Step n="03" title="We say if we're not a fit">
+              If your event is outside Connecticut, outside these four
+              categories, or beyond what we can do well, we tell you and point
+              you elsewhere. That costs us bookings and it is the point.
             </Step>
           </ol>
         </div>
       </section>
 
-      {/* --------------------------------------------------- Honest positioning */}
-      <section
-        aria-labelledby="how-we-work"
-        className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20"
-      >
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow text-ink-subtle">How we work</span>
-            <h2
-              id="how-we-work"
-              className="text-display-2 font-display text-ink"
-            >
-              We coordinate. We don&apos;t pretend to be everyone.
+      {/* ------------------------------------------------- What zero looks like */}
+      <section className="border-b border-line bg-paper-sunk">
+        <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+            <Reveal className="flex flex-col gap-4">
+              <h2 className="text-display-2 font-display text-ink">
+                We are new. Here is exactly how new.
+              </h2>
+              <p className="text-body-lg text-ink-muted">
+                No completed events. No reviews. No case studies. No awards. You
+                will not find a wall of logos here, because there is nothing
+                honest to put on it.
+              </p>
+              <p className="text-body text-ink-muted">
+                What you get instead is a published process, a response
+                commitment the system actually enforces, and someone who will
+                tell you when the answer is no. When there is real proof, it
+                will appear here — with names attached.
+              </p>
+            </Reveal>
+
+            <Reveal className="flex flex-col gap-4 rounded-xl border border-line bg-paper-raised p-6">
+              <h3 className="font-display text-heading-2 text-ink">
+                What we will not do
+              </h3>
+              <ul className="flex flex-col gap-3 text-small text-ink-muted">
+                <Wont>Invent a review, a past event, or a happy client.</Wont>
+                <Wont>
+                  Put you in an automated email sequence because you filled in a
+                  form.
+                </Wont>
+                <Wont>
+                  Quote a price before we understand what you are actually
+                  asking for.
+                </Wont>
+                <Wont>
+                  Take an event we cannot run well just because it is revenue.
+                </Wont>
+              </ul>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- Closing CTA */}
+      <section>
+        <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
+          <Reveal className="flex max-w-measure flex-col gap-5">
+            <h2 className="text-display-2 font-display text-ink">
+              Start with the thing you already know.
             </h2>
-          </div>
-
-          <div className="flex flex-col gap-6 text-body text-ink-muted">
-            <p>
-              We own the relationship with you and the coordination of your
-              event. The work itself — catering, florals, photography, rentals,
-              production, transportation — is delivered by independent providers
-              we source and vet on your behalf.
+            <p className="text-body-lg text-ink-muted">
+              You do not need a finished plan to get a useful answer. A date, a
+              rough guest count, and the part you are dreading is enough.
             </p>
-            <p>
-              That includes transportation. We do not own vehicles or employ
-              drivers. When your event needs a shuttle run or guest transport,
-              we specify it, source it from licensed and insured carriers, and
-              hold the schedule — and your transportation contract is with the
-              carrier, not with us.
-            </p>
-            <p>
-              We work in {siteConfig.serviceArea.description}. That&apos;s where
-              we know the venues, the towns, the vendors and the constraints. If
-              you&apos;re planning elsewhere in New England, ask — we&apos;ll
-              tell you honestly whether we can help.
-            </p>
-          </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <ButtonLink href="/plan" size="lg">
+                Start planning
+              </ButtonLink>
+              {siteConfig.contact.phone ? (
+                <a
+                  href={`tel:${siteConfig.contact.phone}`}
+                  className="text-small font-medium text-ink underline decoration-line-strong underline-offset-4 transition-colors duration-150 hover:text-accent hover:decoration-accent"
+                >
+                  Or call {siteConfig.contact.phoneDisplay ?? siteConfig.contact.phone}
+                </a>
+              ) : (
+                <p className="text-small text-ink-muted">
+                  Prefer email? The form reaches the same inbox.
+                </p>
+              )}
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* -------------------------------------------------------------- CTA */}
-      <section className="border-t border-line bg-paper-sunk">
-        <div className="mx-auto flex max-w-content flex-col items-start gap-6 px-5 py-16 sm:px-8 sm:py-20">
-          <h2 className="max-w-measure text-display-2 font-display text-ink">
-            Tell us what you&apos;re planning.
-          </h2>
-          <p className="max-w-measure text-body-lg text-ink-muted">
-            Three minutes now saves you a month of chasing quotes. No obligation,
-            and no sales sequence afterwards.
-          </p>
-          <ButtonLink href="/plan" size="lg">
-            Start planning
-          </ButtonLink>
-          <p className="text-small text-ink-muted">
-            Prefer to look around first?{" "}
-            <Link
-              href="/plan"
-              className="underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
-            >
-              The form tells you what we&apos;d need to know anyway.
-            </Link>
-          </p>
-        </div>
-      </section>
+      <StickyCta />
     </>
   );
 }
@@ -226,12 +244,21 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-2 border-t-2 border-sage pt-4">
+    <Reveal as="li" className="flex flex-col gap-2 border-t-2 border-sage pt-4">
       <span className="eyebrow text-sage" aria-hidden="true">
         {n}
       </span>
       <h3 className="font-display text-heading-2 text-ink">{title}</h3>
       <p className="text-small text-ink-muted">{children}</p>
+    </Reveal>
+  );
+}
+
+function Wont({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span aria-hidden="true" className="mt-2 h-px w-3 shrink-0 bg-line-strong" />
+      <span>{children}</span>
     </li>
   );
 }

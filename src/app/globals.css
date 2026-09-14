@@ -173,6 +173,13 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /*
+     * The mobile action bar is fixed over the bottom of the viewport, so
+     * anything scrolled to the bottom edge - by a focus move, an anchor, or a
+     * programmatic scrollIntoView - would otherwise land underneath it and be
+     * unclickable.
+     */
+    scroll-padding-bottom: 6rem;
   }
 
   body {

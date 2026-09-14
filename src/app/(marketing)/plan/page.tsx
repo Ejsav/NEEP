@@ -5,6 +5,7 @@ import { turnstileSiteKey } from "@/lib/security/turnstile";
 import { responseSlaHours } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
 import { getActiveDraft } from "@/lib/inquiries/drafts";
+import { EVENT_TYPE_VALUES } from "@/lib/domain/inquiry-options";
 import { PlannerForm } from "./planner-form";
 import { DRAFT_SCOPE, FORM_SCOPE, type PlannerDefaults } from "./form-state";
 
@@ -28,9 +29,30 @@ export const metadata: Metadata = {
  */
 export const dynamic = "force-dynamic";
 
-export default async function PlanPage() {
+/**
+ * Reads the event type a service page sent us in, validated against the
+ * canonical list.
+ *
+ * A query parameter is user-supplied input like any other, so an unrecognised
+ * value is dropped rather than rendered - it must never reach the form as a
+ * preselected option the server would later reject.
+ */
+function preselectedEventType(value: string | string[] | undefined): string | undefined {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (!candidate) return undefined;
+  return (EVENT_TYPE_VALUES as readonly string[]).includes(candidate)
+    ? candidate
+    : undefined;
+}
+
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const slaHours = responseSlaHours();
   const siteKey = turnstileSiteKey();
+  const preselected = preselectedEventType((await searchParams).eventType);
 
   // A returning visitor picks up where they left off. Contact fields are never
   // restored because they were never stored - see src/lib/inquiries/drafts.ts.
@@ -51,6 +73,14 @@ export default async function PlanPage() {
         resumeStep: Math.min(draft.furthestStep, 5),
       }
     : {};
+
+  // A visitor arriving from a service page has already answered step 1, so the
+  // planner opens on step 2 with their answer carried across. An in-progress
+  // draft wins: what they actually did beats where they came from.
+  if (!draft && preselected) {
+    defaults.eventType = preselected;
+    defaults.resumeStep = 2;
+  }
 
   return (
     <div className="mx-auto max-w-content px-5 py-12 sm:px-8 sm:py-16">

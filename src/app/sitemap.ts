@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/env";
+import { VERTICALS } from "@/lib/domain/verticals";
 
 /**
  * Only routes that actually exist and are indexable belong here. A sitemap that
@@ -25,5 +26,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.9,
     },
+    ...VERTICALS.map((vertical) => ({
+      url: `${base}/${vertical.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
   ];
 }
