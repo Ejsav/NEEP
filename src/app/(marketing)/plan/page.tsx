@@ -86,25 +86,31 @@ export default async function PlanPage({
     <div className="mx-auto max-w-content px-5 py-12 sm:px-8 sm:py-16">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
         <div className="flex flex-col gap-10">
-          <header className="flex max-w-measure flex-col gap-4">
-            <span className="eyebrow">Start here</span>
-            <h1 className="text-display-2 font-display text-ink">
-              Tell us what you&apos;re planning.
-            </h1>
-            <p className="text-body-lg text-ink-muted">
-              Five short questions, about ninety seconds. The more you tell us,
-              the more useful our first reply is — and the less of your time we
-              waste asking things you&apos;ve already answered.
-            </p>
-          </header>
-
+          {/*
+            The intro is passed into the form rather than rendered beside it, so
+            it disappears once the inquiry is sent. "Five short questions, about
+            ninety seconds" printed above a receipt is an instruction to do
+            something the visitor has already done.
+          */}
           <PlannerForm
             formToken={issueFormToken(FORM_SCOPE)}
             draftToken={issueFormToken(DRAFT_SCOPE)}
             slaHours={slaHours}
             defaults={defaults}
             turnstileSiteKey={siteKey}
-          />
+          >
+            <header className="flex max-w-measure flex-col gap-4">
+              <span className="eyebrow">Start here</span>
+              <h1 className="text-display-2 font-display text-ink">
+                Tell us what you&apos;re planning.
+              </h1>
+              <p className="text-body-lg text-ink-muted">
+                Five short questions, about ninety seconds. The more you tell us,
+                the more useful our first reply is — and the less of your time we
+                waste asking things you&apos;ve already answered.
+              </p>
+            </header>
+          </PlannerForm>
         </div>
 
         {/*

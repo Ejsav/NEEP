@@ -15,7 +15,14 @@ import { VERTICALS } from "@/lib/domain/verticals";
 export function SiteHeader() {
   return (
     <header className="border-b border-line bg-paper/90 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-wide flex-col gap-2.5 px-5 py-3.5 sm:gap-3 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      {/*
+        Two rows below `lg` - wordmark and actions on the first, services on the
+        second - rather than three stacked blocks. A grid does that without
+        duplicating the actions markup: the nav spans both columns, so it drops
+        to its own row, and at `lg` the whole thing becomes one flex row with the
+        actions ordered last.
+      */}
+      <div className="mx-auto grid max-w-wide grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2.5 px-5 py-3.5 sm:gap-y-3 sm:py-4 lg:flex lg:justify-between lg:gap-8 lg:px-8">
         <Link
           href="/"
           className="group inline-flex flex-col rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
@@ -28,7 +35,10 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav aria-label="Services" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <nav
+          aria-label="Services"
+          className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 lg:col-span-1"
+        >
           {VERTICALS.map((vertical) => (
             <Link
               key={vertical.slug}
@@ -45,7 +55,7 @@ export function SiteHeader() {
           link and the same primary action within thumb reach. Repeating it here
           costs about 60px of the first screen and buys nothing.
         */}
-        <div className="hidden items-center gap-4 sm:flex">
+        <div className="col-start-2 row-start-1 hidden items-center gap-4 justify-self-end sm:flex lg:order-last">
           {siteConfig.contact.phone ? (
             <a
               href={`tel:${siteConfig.contact.phone}`}
