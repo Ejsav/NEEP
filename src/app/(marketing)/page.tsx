@@ -71,15 +71,16 @@ export default function HomePage() {
         <div className="mx-auto max-w-content px-5 pb-14 pt-12 sm:px-8 sm:pb-20 sm:pt-20">
           <span className="eyebrow">{siteConfig.serviceArea.description}</span>
           <h1 className="mt-5 max-w-[19ch] text-display-1 font-display text-ink">
-            Planning an event shouldn&apos;t mean managing twelve strangers.
+            Tell us what you want. We make it happen.
           </h1>
 
           <div className="mt-10 grid gap-10 border-t border-line pt-8 sm:mt-12 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
             <div className="flex max-w-measure flex-col gap-6">
               <p className="text-body-lg text-ink-muted">
-                {siteConfig.name} is one place to start. We find the venue,
-                source and vet the vendors, hold the timeline, and run the
-                logistics — so you make decisions instead of chasing quotes.
+                You have a date, a budget and an idea of how it should feel. We
+                turn that into an event: the venue, the vendors, the timeline,
+                the people, and the hundred decisions underneath. You approve;
+                we carry it.
               </p>
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                 <ButtonLink href="/plan" size="lg">
@@ -97,8 +98,9 @@ export default function HomePage() {
                 say so rather than take the booking.
               </Fact>
               <Fact term="What">
-                Weddings, corporate events, private events, and venue and vendor
-                coordination on its own.
+                Weddings, corporate events and launches, private and social
+                events, or coordination on its own when you have the vendors
+                already.
               </Fact>
               <Fact term="Reply">
                 Within {slaHours} hours, written by a person who read what you
@@ -252,7 +254,7 @@ export default function HomePage() {
           <Reveal className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-16">
             <div className="flex max-w-measure flex-col gap-4">
               <h2 className="text-display-2 font-display text-ink">
-                Start with the thing you already know.
+                Start with the part you are dreading.
               </h2>
               <p className="text-body-lg text-ink-muted">
                 You do not need a finished plan to get a useful answer. A date, a

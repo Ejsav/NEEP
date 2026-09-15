@@ -29,6 +29,23 @@ The four vertical heroes all sit in the same column, so landscape and portrait
 sources are both fine — declare which one you supplied and the layout follows
 it.
 
+## What to shoot — the machinery, not the flowers
+
+Every site in this category is a gallery of florals and first dances. The thing
+that separates this one is the work underneath: a marked-up floor plan, a
+walkthrough with a clipboard, load-in in progress, a vendor briefing, staging
+before doors open, the room in the ninety seconds before anyone is let in.
+
+Weight the shot list roughly **two-thirds machinery, one-third atmosphere.**
+Atmosphere still matters — it is what makes the result feel worth buying — but
+it is the minority, because it is the half a competitor can buy from a stock
+library and the machinery is not.
+
+A photograph of our own working documents, kit or process is honest and needs no
+caveat. A photograph that would read as a record of an event this company ran is
+not, until there is one. That is the whole line, and it is the same one
+`src/components/sections/document-sample.tsx` holds for the rendered templates.
+
 ## Before committing an image
 
 - **Budget.** The homepage hero must come out under 180 KB in AVIF. Next

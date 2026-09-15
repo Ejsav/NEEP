@@ -40,6 +40,13 @@ export default function GlobalError({
         }}
       >
         <main style={{ maxWidth: "34rem" }}>
+          {/*
+            The one place the brand name is a literal rather than
+            `siteConfig.name`, and it stays that way. This boundary replaces the
+            root layout, so it runs when the module graph itself is suspect -
+            importing anything to render an error page is how an error page
+            fails to render. `pnpm brand:check` knows to skip this file.
+          */}
           <p
             style={{
               margin: 0,

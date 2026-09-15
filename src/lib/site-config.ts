@@ -18,16 +18,30 @@ function publicEnv(value: string | undefined): string | null {
 export const siteConfig = {
   /** Legal entity. Used where the entity must be named, and nowhere else. */
   legalName: "New England Event Planners LLC",
-  /** Trading name used throughout the public site. */
+  /**
+   * Trading name used throughout the public site. PROVISIONAL.
+   *
+   * The public brand is under review; the legal entity above is not. Changing
+   * this one value changes every public surface - metadata, Open Graph cards,
+   * structured data, llms.txt, the footer - because nothing else in the
+   * codebase hardcodes it. The `pnpm brand:check` script proves that claim
+   * rather than trusting it. See docs/DECISIONS.md D-025.
+   */
   name: "New England Event Planners",
   shortName: "NEEP",
 
   /**
-   * One sentence, load-bearing. Describes what the company does without
-   * claiming operations it does not perform.
+   * One sentence, load-bearing. Feeds the homepage description, the Open Graph
+   * cards, the footer and llms.txt, so it moves everywhere at once.
+   *
+   * It sells CERTAINTY, not convenience. "One place to start" described a
+   * directory; the company is the operator that carries an event from a date
+   * and a budget to a thing that actually happened. What it must not do is
+   * claim a scale of work not yet performed - the register is raised by how
+   * the site reads, never by asserting a number.
    */
   tagline:
-    "One place to start planning your Connecticut event, instead of chasing every vendor yourself.",
+    "One company to plan, coordinate and run your Connecticut event, from the first decision to the last van out.",
 
   /** Launch market. Architecture supports expansion; copy must not imply it. */
   serviceArea: {

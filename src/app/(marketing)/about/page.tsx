@@ -13,8 +13,7 @@ import { VERTICALS } from "@/lib/domain/verticals";
 
 export const metadata: Metadata = {
   title: "About",
-  description:
-    "Who New England Event Planners is, how the coordinator model actually works, and an honest account of what this company has and has not done yet.",
+  description: `Who ${siteConfig.name} is, how the coordinator model actually works, and an honest account of what this company has and has not done yet.`,
   alternates: { canonical: "/about" },
 };
 
@@ -67,6 +66,10 @@ export default function AboutPage() {
               We hold the relationship and the logistics. Independent providers
               do the delivery, under contracts you sign.
             </Fact>
+            <Fact term="Scope">
+              Planning only, partial, day-of, or the whole thing. Four different
+              amounts of work — most people need less than they assume.
+            </Fact>
           </FactList>
         }
       />
@@ -90,6 +93,16 @@ export default function AboutPage() {
                 The point is that there is one place to start, and one person
                 accountable, instead of you separately finding and managing
                 every vendor an event turns out to need.
+              </p>
+              <p>
+                How much of it we carry is your call, and it is a real choice
+                rather than a menu that all leads to the same price. You can
+                hand us the whole thing from a date and a budget. You can keep
+                the parts you enjoy and give us the rest. You can do all of it
+                yourself and bring us in for the day, when the cost of something
+                going wrong is highest. We would rather scope you correctly than
+                sell you the top tier — and we will say so when the smaller
+                engagement is the right one.
               </p>
             </Reveal>
 

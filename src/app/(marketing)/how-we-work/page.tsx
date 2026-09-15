@@ -5,6 +5,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionHeader } from "@/components/sections/section-header";
 import { RuledItem, RuledList } from "@/components/sections/ruled-list";
 import { Fact, FactList } from "@/components/sections/fact-list";
+import { DocumentSample } from "@/components/sections/document-sample";
 import { StickyCta } from "@/components/site/sticky-cta";
 import { responseSlaHours, siteUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
@@ -178,6 +179,106 @@ export default function HowWeWorkPage() {
                 will tell you exactly what we have on file.
               </p>
             </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/*
+        ------------------------------------------------------- The machinery
+
+        Every site in this category is a gallery of flowers. What a client is
+        actually buying is the documentation underneath - and unlike
+        photography, we can show it honestly on day one, because these are our
+        own templates rather than evidence of an event we have not run. The
+        caption on each one says so on its face.
+      */}
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-content px-5 py-16 sm:px-8 sm:py-20">
+          <SectionHeader
+            title="The paperwork nobody shows you"
+            lede="Three of the documents an event actually runs on. They are the difference between a plan and a wish, and they are the part of this work a photograph cannot show."
+          />
+
+          <div className="mt-10 flex flex-col gap-12 sm:mt-12">
+            <DocumentSample
+              title="Run of show"
+              caption="Our template. Built backwards from the last dance, and every vendor works from the same copy."
+              columns={[
+                { key: "time", label: "Time", numeric: true },
+                { key: "what", label: "What happens" },
+                { key: "who", label: "Who is responsible" },
+                { key: "watch", label: "What goes wrong here" },
+              ]}
+              rows={[
+                {
+                  time: "14:00",
+                  what: "Vendor load-in opens",
+                  who: "Us, on site",
+                  watch: "Two vans arrive at once and the loading door fits one",
+                },
+                {
+                  time: "16:30",
+                  what: "Room flip begins",
+                  who: "Venue + rentals",
+                  watch: "Ceremony chairs are the reception chairs; nobody costed the labour",
+                },
+                {
+                  time: "17:15",
+                  what: "Photography golden hour",
+                  who: "Photographer",
+                  watch: "Sunset moved three weeks ago and the timeline did not",
+                },
+                {
+                  time: "22:45",
+                  what: "Amplified music ends",
+                  who: "Band / DJ",
+                  watch: "Town ordinance, not the venue's curfew — the earlier of the two wins",
+                },
+                {
+                  time: "23:30",
+                  what: "Load-out complete",
+                  who: "All vendors",
+                  watch: "Overtime starts at midnight and somebody has to be there to sign",
+                },
+              ]}
+              footnote="Times are illustrative. Every event gets its own, built from its own venue constraints."
+            />
+
+            <DocumentSample
+              title="Vendor status"
+              caption="Our template. What is signed, what is outstanding, and what is blocking something else."
+              columns={[
+                { key: "role", label: "Role" },
+                { key: "status", label: "Status" },
+                { key: "owes", label: "Outstanding" },
+                { key: "by", label: "Needed by", numeric: true },
+              ]}
+              rows={[
+                { role: "Venue", status: "Signed", owes: "Floor plan with final table count", by: "T-30" },
+                { role: "Caterer", status: "Signed", owes: "Final headcount, dietary list", by: "T-14" },
+                { role: "Rentals", status: "Quoted", owes: "Confirm delivery window vs. load-in", by: "T-21" },
+                { role: "Photography", status: "Signed", owes: "Shot list, family groupings", by: "T-7" },
+                { role: "Transportation", status: "Quoted", owes: "Carrier licence and certificate of insurance on file", by: "T-21" },
+              ]}
+              footnote="Transportation is coordinated through independent licensed and insured carriers; the contract is between the client and the carrier."
+            />
+
+            <DocumentSample
+              title="Load-in and access"
+              caption="Our template. The constraints that decide whether a plan is physically possible."
+              columns={[
+                { key: "item", label: "Constraint" },
+                { key: "value", label: "What we confirm" },
+              ]}
+              rows={[
+                { item: "Access", value: "Door width, stair or lift, distance from the nearest unloading point" },
+                { item: "Window", value: "Earliest load-in and latest load-out the venue will actually allow" },
+                { item: "Parking", value: "On-site count against guest count, and whether overflow exists" },
+                { item: "Staging", value: "Whether the approach takes the vehicle size the guest count implies" },
+                { item: "Power", value: "Circuits available where the band, the lighting and the caterer all need them" },
+                { item: "Weather", value: "The call time for the contingency, and who makes the call" },
+              ]}
+            />
           </div>
         </div>
       </section>

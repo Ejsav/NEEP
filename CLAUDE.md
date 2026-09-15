@@ -101,6 +101,7 @@ pnpm test             # vitest, needs DATABASE_URL
 pnpm verify           # typecheck + lint + test + build
 pnpm verify:e2e       # browser checks; needs a built app on :3000
 pnpm links            # internal link graph; no page reachable only from chrome
+pnpm brand:check      # the public name is one value away from a rename (D-025)
 pnpm db:generate      # generate a migration from schema.ts
 pnpm db:migrate       # apply migrations
 pnpm admin:create     # create/update an admin (env-driven, no defaults)

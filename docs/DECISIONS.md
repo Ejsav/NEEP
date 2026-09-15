@@ -814,3 +814,77 @@ that says so.
 chrome-only, with the reason inline. An exception that has to be written down
 next to its justification is an exception somebody will reconsider; a silent one
 is not.
+
+---
+
+## D-025 — The public brand is provisional; the legal entity is not
+
+**Status:** RECOMMENDATION, implemented.
+
+New England Event Planners LLC remains the legal entity. The public trading name
+is under review and is treated as a value, not a fact: the business concept —
+a premium event planning, coordination and execution company, asset-light, with
+a vetted vendor network — has a higher ceiling than a descriptive category name
+comfortably carries.
+
+**Why now rather than later.** A rename is never cheaper than at zero traffic,
+zero reviews, zero backlinks and zero case studies. The cost rises every month
+the name accumulates equity, so the cheap window is open exactly once.
+
+**The mechanism.** `siteConfig.name` is the single source of truth. Every public
+surface — metadata, Open Graph cards, structured data, `llms.txt`, the footer,
+the planner's trust rail — reads it. Three files may hold the literal, each for a
+stated reason, and `scripts/brand-check.mjs` fails the build if a fourth appears:
+
+- `src/lib/site-config.ts` defines it.
+- `src/app/global-error.tsx` replaces the root layout when the module graph is
+  suspect; importing anything to render an error page is how an error page fails
+  to render.
+- `src/app/icon.svg` is served verbatim and cannot read config. **Note this one
+  is not a string change at rename time** — the mark is an "N" monogram and needs
+  redrawing.
+
+The architecture already anticipated a DBA: `/about` renders "{name} is a trading
+name of {legalName}" and the legal pages read `legalName` throughout.
+
+**Verified, not assumed.** Setting `name` to a different string, rebuilding and
+grepping all thirteen routes plus `llms.txt` returns zero occurrences of the old
+name beyond the LLC legal name, which correctly persists. Repeat that procedure
+at the real rename.
+
+**Still needed:** the name itself and a domain. Candidates checked by DNS and
+likely unregistered at the time of writing: `throughlineevents.com`,
+`linchpinevents.com`, `halyardevents.com`, `callsheetevents.com`,
+`theshowrunnerco.com`, `keelevents.com`. No nameserver is a strong signal of
+unregistered, not proof — confirm at a registrar.
+
+---
+
+## D-026 — Show the machinery, and label it as a template
+
+**Status:** RECOMMENDATION, implemented.
+
+The category's websites are galleries of flowers. What a client is actually
+buying is the documentation underneath — the run of show, the vendor status
+board, the load-in constraints — and that is the one asset a competitor cannot
+approximate with stock photography.
+
+So `/how-we-work` shows three of them, rendered as real tables rather than as
+pictures of tables: readable by a screen reader, selectable, translatable, and
+weighing nothing.
+
+**The line this must not cross.** These are **templates** — the documents every
+event gets — and each carries that on its face in a required `caption` prop, not
+in a footnote. Presenting one as a record of a completed event would be the
+fabrication `CLAUDE.md` forbids. The caption is what keeps the distinction
+visible rather than merely intended, which is why the component cannot be
+rendered without one.
+
+The same line governs photography, and it resolves the imagery brief: pictures of
+our own documents, kit and process need no caveat; a picture that would read as
+evidence of an event this company ran is not available until there is one. See
+`public/images/README.md`.
+
+**Consequence for the shot list.** The original nine-image brief was atmosphere —
+rooms, tables, place settings. It is reweighted to roughly two-thirds machinery,
+because atmosphere is the half a competitor can buy and the machinery is not.

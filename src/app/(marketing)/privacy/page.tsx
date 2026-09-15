@@ -6,8 +6,7 @@ import { hasAnyDirectContact, siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description:
-    "What New England Event Planners collects, why, how long it is kept, and what we deliberately do not store.",
+  description: `What ${siteConfig.name} collects, why, how long it is kept, and what we deliberately do not store.`,
   alternates: { canonical: "/privacy" },
 };
 

@@ -107,14 +107,14 @@ export const VERTICALS: Vertical[] = [
     eventType: "corporate",
     title: "Corporate events",
     homeBlurb:
-      "Holiday parties, offsites, conferences and client events — one point of accountability and one invoice.",
+      "Holiday parties, offsites, conferences, product launches and fundraisers — one point of accountability and one invoice.",
     homeLink: "Corporate events",
     metaTitle: "Connecticut Corporate Event Planning",
     metaDescription:
-      "Corporate event planning across Connecticut: holiday parties, offsites, conferences and client events. One point of accountability, vetted vendors, and invoicing that fits procurement.",
+      "Corporate event planning across Connecticut: holiday parties, offsites, conferences, product launches and fundraisers. One point of accountability, vetted vendors, and invoicing that fits procurement.",
     h1: "Corporate events in Connecticut, with one person accountable.",
     intro:
-      "The problem with a company event is rarely the event. It is that organising it lands on someone whose actual job is something else, and who now owns nine vendor relationships and a procurement process that was not designed for any of them.",
+      "The problem with a company event is rarely the event. It is that organising it lands on someone whose actual job is something else, and who now owns nine vendor relationships and a procurement process that was not designed for any of them. A launch, a fundraiser and a holiday party are different evenings with the same underlying problem.",
     includesLede:
       "Everything below is work that would otherwise sit on top of someone's actual job, usually in the six weeks before the date.",
     includes: [
@@ -158,14 +158,14 @@ export const VERTICALS: Vertical[] = [
     eventType: "private",
     title: "Private events",
     homeBlurb:
-      "Milestone birthdays, anniversaries, graduations — the ones that matter without being a wedding.",
+      "Milestone birthdays, anniversaries, graduations, parties with a guest list — the ones that matter without being a wedding.",
     homeLink: "Private events",
     metaTitle: "Connecticut Milestone Events",
     metaDescription:
-      "Planning for Connecticut milestone birthdays, anniversaries, graduations and family celebrations. Real help on a real budget, with the scope set to what you actually need.",
+      "Planning for Connecticut milestone birthdays, anniversaries, graduations, parties and family celebrations. Real help on a real budget, with the scope set to what you actually need.",
     h1: "The party you want to be at, not the one you are running.",
     intro:
-      "Milestone events get planned by the person they are least fun for. A sixtieth, a fiftieth anniversary, a graduation — someone in the family ends up holding the caterer, the rentals and the seating chart, and spends the evening checking on things.",
+      "Milestone events get planned by the person they are least fun for. A sixtieth, a fiftieth anniversary, a graduation, a party big enough to need a plan — someone in the family ends up holding the caterer, the rentals and the seating chart, and spends the evening checking on things instead of being at them.",
     includesLede:
       "Milestone events are small enough to look easy and complicated enough to eat a month. This is the part we take off you.",
     includes: [

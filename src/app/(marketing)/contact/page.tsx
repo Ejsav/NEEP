@@ -8,8 +8,7 @@ import { hasAnyDirectContact, siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description:
-    "How to reach New England Event Planners, what happens when you do, and how long it takes to hear back.",
+  description: `How to reach ${siteConfig.name}, what happens when you do, and how long it takes to hear back.`,
   alternates: { canonical: "/contact" },
 };
 
