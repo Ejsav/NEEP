@@ -16,17 +16,32 @@ export function SlotImage({
   priority = false,
   className,
   sizes = "100vw",
+  caption,
 }: {
   name: ImageSlotName;
   /** Set only on an image above the fold. Never on more than one per page. */
   priority?: boolean;
   className?: string;
   sizes?: string;
+  /**
+   * Visible caption. Renders a real <figure>/<figcaption>, so the association
+   * is in the markup rather than implied by proximity.
+   *
+   * Two rules in this project require one and could not be honoured before:
+   *
+   *  - Vehicle imagery needs an adjacent "representative" caption or must not
+   *    appear at all (CLAUDE.md, the CGS 13b-101 boundary).
+   *  - A photograph that could be read as evidence of a completed event has to
+   *    say what it actually is (D-019, D-026).
+   *
+   * An image that needs one and does not get one is a claim nobody wrote down.
+   */
+  caption?: string;
 }) {
   const slot = imageSlot(name);
   if (!slot) return null;
 
-  return (
+  const image = (
     <Image
       src={slot.src}
       alt={slot.alt}
@@ -36,6 +51,17 @@ export function SlotImage({
       sizes={sizes}
       className={className}
     />
+  );
+
+  if (!caption) return image;
+
+  return (
+    <figure className="flex flex-col gap-2">
+      {image}
+      <figcaption className="max-w-measure text-micro text-ink-subtle">
+        {caption}
+      </figcaption>
+    </figure>
   );
 }
 

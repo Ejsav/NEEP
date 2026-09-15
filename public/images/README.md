@@ -16,7 +16,7 @@ name before the extension has to match.
 | `hero-weddings` | `/weddings` hero, right column | 1132 × 1456 | portrait |
 | `hero-corporate-events` | `/corporate-events` hero, right column | 1800 × 1200 | landscape |
 | `hero-private-events` | `/private-events` hero, right column | 1800 × 1200 | landscape |
-| `hero-venue-vendor-coordination` | `/venue-vendor-coordination` hero, right column | 1800 × 1200 | landscape |
+| `hero-venue-vendor-coordination` | `/venue-vendor-coordination` hero, right column **and** the machinery block on `/how-we-work` | 1800 × 1200 | landscape |
 | `about-connecticut` | `/about` | 1600 × 1200 | landscape |
 
 If the dimensions of a file differ from the table, update the slot in
@@ -28,6 +28,27 @@ a landscape file declared portrait will be cropped hard down its middle.
 The four vertical heroes all sit in the same column, so landscape and portrait
 sources are both fine — declare which one you supplied and the layout follows
 it.
+
+## Two slots may share one file
+
+`machinery-run-of-show` deliberately points at `hero-venue-vendor-coordination`.
+One photograph doing two jobs on two pages is a legitimate thing to want, and
+duplicating the bytes under a second name to express it would be worse in every
+respect. Drop a distinct file in later and split them by changing one
+`basename` in `src/lib/images.ts`.
+
+## Captions
+
+`SlotImage` takes an optional `caption`, rendered as a real
+`<figure>`/`<figcaption>`. Two rules in this project require one:
+
+- **Vehicle imagery** needs an adjacent "representative" caption or must not
+  appear at all. That is the CGS §13b-101 boundary, not a style preference.
+- **Anything that could be read as evidence of a completed event** has to say
+  what it actually is. The run-of-show frame carries a dated document, so it
+  ships captioned.
+
+An image that needs a caption and does not get one is a claim nobody wrote down.
 
 ## What to shoot — the machinery, not the flowers
 

@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/sections/section-header";
 import { RuledItem, RuledList } from "@/components/sections/ruled-list";
 import { Fact, FactList } from "@/components/sections/fact-list";
 import { DocumentSample } from "@/components/sections/document-sample";
+import { SlotImage } from "@/components/site/slot-image";
 import { StickyCta } from "@/components/site/sticky-cta";
 import { responseSlaHours, siteUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
@@ -197,6 +198,20 @@ export default function HowWeWorkPage() {
           <SectionHeader
             title="The paperwork nobody shows you"
             lede="Three of the documents an event actually runs on. They are the difference between a plan and a wish, and they are the part of this work a photograph cannot show."
+          />
+
+          {/*
+            The photograph and the templates below it are the same argument made
+            twice - this is what the work physically looks like, and here is what
+            the paperwork actually says. The caption is not decoration: the run
+            of show in the frame is dated and specific, so without it the picture
+            reads as a record of an event we ran. See D-026.
+          */}
+          <SlotImage
+            name="machinery-run-of-show"
+            sizes="(min-width: 1024px) 68rem, 100vw"
+            className="mt-10 w-full rounded-xl object-cover sm:mt-12"
+            caption="Our own kit and paperwork, photographed during setup. Not a record of a client event — when there is one to show, it will say so and carry a name."
           />
 
           <div className="mt-10 flex flex-col gap-12 sm:mt-12">

@@ -20,7 +20,13 @@ import { join } from "node:path";
  */
 
 export type ImageSlotDefinition = {
-  /** Filename WITHOUT extension. Any supported format is accepted. */
+  /**
+   * Filename WITHOUT extension. Any supported format is accepted.
+   *
+   * Two slots MAY share a basename. One photograph doing two jobs on two pages
+   * is a legitimate thing to want, and duplicating the bytes under a second
+   * name to express it would be worse in every respect.
+   */
   basename: string;
   alt: string;
   width: number;
@@ -75,6 +81,24 @@ export const IMAGE_SLOTS = {
   "hero-venue-vendor-coordination": {
     basename: "hero-venue-vendor-coordination",
     alt: "A printed run-of-show and a venue floor plan laid out on a road case during load-in, with a two-way radio beside them and a tented terrace lit for the evening in the background.",
+    width: 1800,
+    height: 1200,
+    orientation: "landscape",
+  },
+  /**
+   * The machinery shot, on /how-we-work above the document samples.
+   *
+   * Shares the coordination pillar's file on purpose: it is the same frame
+   * doing the same work in two places, and the page that needs it most is the
+   * one explaining how the work is actually done.
+   *
+   * REQUIRES A CAPTION wherever it renders. The run of show in the frame is
+   * dated and specific, so uncaptioned it reads as a record of an event this
+   * company ran - which is the exact line docs/DECISIONS.md D-026 draws.
+   */
+  "machinery-run-of-show": {
+    basename: "hero-venue-vendor-coordination",
+    alt: "A printed run of show and a marked-up floor plan on a road case during load-in, a two-way radio beside them, a tented terrace lit for the evening behind.",
     width: 1800,
     height: 1200,
     orientation: "landscape",

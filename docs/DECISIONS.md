@@ -888,3 +888,49 @@ evidence of an event this company ran is not available until there is one. See
 **Consequence for the shot list.** The original nine-image brief was atmosphere —
 rooms, tables, place settings. It is reweighted to roughly two-thirds machinery,
 because atmosphere is the half a competitor can buy and the machinery is not.
+
+---
+
+## D-019a — Amendment: what the delivered frames actually contain
+
+**Status:** VERIFIED FACT (the contents) plus a RECORDED OWNER DECISION.
+
+D-019 accepted generated imagery as atmosphere on two named risks. The five
+frames have now been supplied and inspected, so the risks can be stated as facts
+rather than as predictions. This amendment exists because a decision inherited
+without its evidence is a decision nobody can revisit intelligently.
+
+**Frames that carry no issue.** The waterfront function room (`hero-home`) and
+the place setting (`hero-weddings`) contain table numbers and a food menu and no
+third-party mark. They read as coastal New England. Nothing to flag.
+
+**The conference room (`hero-corporate-events`) names a real organisation.**
+The lectern reads "THE CONNECTICUT FORUM" and the wall carries "PEOPLE · IDEAS ·
+A STRONGER CONNECTICUT" and "CIVIC DIALOGUE BUILDS A BRIGHTER TOMORROW". The
+Connecticut Forum is an existing Hartford non-profit. The generator reproduced an
+actual organisation's identity rather than inventing a plausible one, so on
+`/corporate-events` the frame implies a client or venue relationship that does
+not exist — and the mark is a third party's, not only our claim.
+
+This was raised twice. The first time the owner's response was that the image is
+generated and carries no branding. The second time the specific fact above was
+put to him, and **he reaffirmed shipping it as-is.** That is his call to make and
+it is recorded here with what was known at the time, not paraphrased.
+
+**Revisit if:** anyone associated with The Connecticut Forum raises it, an
+enquiry references it, or a corporate frame without readable signage becomes
+available. Replacing it is a one-file commit — the slot resolves whatever is on
+disk — so the cost of reversing this is close to zero and it should be reversed
+the moment there is an alternative.
+
+**The long outdoor table (`hero-private-events`) reads Mediterranean.** Olive
+trees, cypresses and vineyard hills, against a rule that imagery must be
+Connecticut or nowhere identifiable. Weighed and accepted under D-019; noted here
+once so the record is complete.
+
+**The run of show (`hero-venue-vendor-coordination`) is the strongest of the
+five**, and it is the only one that shows the work rather than the result. It
+carries a dated, specific document, so it renders with a caption saying it is our
+own kit during setup and not a client event. `SlotImage` gained caption support
+for this, which also makes the standing "representative" caption requirement for
+vehicle imagery implementable for the first time.
